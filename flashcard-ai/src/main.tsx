@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import './index.css';
 import { AppShell } from './components/AppShell';
 import Dashboard from './pages/Dashboard';
@@ -15,6 +15,8 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <BrowserRouter>
       <AppShell>
         <Routes>
+          <Route path="/study" element={<StudyMode />} />
+          <Link to="/study">Study</Link>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create" element={<CreateImport />} />

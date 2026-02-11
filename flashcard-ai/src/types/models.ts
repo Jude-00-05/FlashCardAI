@@ -13,10 +13,17 @@ export type Deck = {
   createdAt: number;
 };
 
+export type ReviewState = {
+  interval: number;
+  repetition: number;
+  easeFactor: number;
+  due: number;
+};
+
 export type Card = {
   id: string;
   deckId: string;
   front: string;
   back: string;
-  createdAt: number;
+  reviewState: ReviewState;
 };

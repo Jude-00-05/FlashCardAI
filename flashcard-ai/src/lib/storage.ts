@@ -1,6 +1,33 @@
 import localforage from 'localforage';
 import { v4 as uuidv4 } from 'uuid';
 import type { Subject, Deck, Card } from '../types/models';
+import type { Card, ReviewState } from '../types/models';
+
+export async function getDueCards(): Promise<Card[]> {
+  const cards: Card[] = [];
+
+  await localforage.iterate((value, key) => {
+    if (key.startsWith('card:')) {
+      const card = value as Card;
+      if (card.reviewState.due <= Date.now()) {
+        cards.push(card);
+      }
+    }
+  });
+
+  return cards;
+}
+
+export async function saveReview(
+  cardId: string,
+  reviewState: ReviewState
+) {
+  const card = await localforage.getItem<Card>(`card:${cardId}`);
+  if (!card) return;
+
+  card.reviewState = reviewState;
+  await localforage.setItem(`card:${cardId}`, card);
+}
 
 
 localforage.config({
@@ -60,16 +87,25 @@ export async function getCardsByDeck(deckId: string): Promise<Card[]> {
   return cards.filter(c => c.deckId === deckId);
 }
 
-export async function createCard(deckId: string, front: string, back: string) {
-  const cards = (await localforage.getItem<Card[]>(CARDS_KEY)) ?? [];
-  const card: Card = {
-    id: uuidv4(),
+export async function createCard(
+  deckId: string,
+  front: string,
+  back: string
+) {
+  const card = {
+    id: crypto.randomUUID(),
     deckId,
     front,
     back,
-    createdAt: Date.now()
+    reviewState: {
+      interval: 1,
+      repetition: 0,
+      easeFactor: 2.5,
+      due: Date.now()
+    }
   };
-  cards.push(card);
-  await localforage.setItem(CARDS_KEY, cards);
+
+  await localforage.setItem(`card:${card.id}`, card);
   return card;
 }
+
