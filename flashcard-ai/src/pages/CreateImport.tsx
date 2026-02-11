@@ -1,9 +1,21 @@
+import { useCallback, useEffect, useState } from 'react';
 import { generateCardsFromText } from '../lib/ai';
-import React, { useEffect, useState } from 'react';
 import { extractTextFromImage } from '../lib/ocr';
 import { extractTextFromPdf } from '../lib/pdf';
-import { getDecks, createCard } from '../lib/storage';
+import {
+  createCard,
+  exportDeckAsCsv,
+  exportDeckAsJson,
+  getDecks,
+  importDeckFromCsv,
+  importDeckFromJson
+} from '../lib/storage';
 import type { Deck } from '../types/models';
+
+type GeneratedCard = {
+  front: string;
+  back: string;
+};
 
 export default function CreateImport() {
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -12,24 +24,31 @@ export default function CreateImport() {
   const [back, setBack] = useState('');
   const [status, setStatus] = useState('');
   const [useCloudAI, setUseCloudAI] = useState(false);
-  const [generated, setGenerated] = useState<
-  { front: string; back: string }[]
->([]);
+  const [generated, setGenerated] = useState<GeneratedCard[]>([]);
+  const [isImportingJson, setIsImportingJson] = useState(false);
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
+  const [csvSubjectName, setCsvSubjectName] = useState('');
+  const [csvDeckName, setCsvDeckName] = useState('');
 
-  useEffect(() => {
-    getDecks().then(setDecks);
+  const loadDecks = useCallback(async () => {
+    const data = await getDecks();
+    setDecks(data);
   }, []);
 
+  useEffect(() => {
+    void loadDecks();
+  }, [loadDecks]);
+
   async function handleSave() {
-    if (!deckId || !front || !back) {
+    if (!deckId || !front.trim() || !back.trim()) {
       setStatus('Please select a deck and fill both sides');
       return;
     }
 
-    await createCard(deckId, front, back);
+    await createCard(deckId, front.trim(), back.trim());
     setFront('');
     setBack('');
-    setStatus('Card saved ✅');
+    setStatus('Card saved');
   }
 
   async function pasteFromClipboard() {
@@ -43,194 +62,344 @@ export default function CreateImport() {
     const text = await extractTextFromPdf(file);
     setFront(text.split('\n')[0] ?? '');
     setBack(text);
-    setStatus('PDF imported ✅');
+    setStatus('PDF imported');
   }
+
   async function handleImageUpload(file: File) {
-  setStatus('Reading image...');
-  const text = await extractTextFromImage(file);
-  setFront(text.split('\n')[0] ?? '');
-  setBack(text);
-  setStatus('Image imported ✅');
-}
-async function handleGenerate() {
-  if (!back) {
-    setStatus('Nothing to generate from');
-    return;
+    setStatus('Reading image...');
+    const text = await extractTextFromImage(file);
+    setFront(text.split('\n')[0] ?? '');
+    setBack(text);
+    setStatus('Image imported');
   }
 
-  setStatus('Generating flashcards...');
-  const cards = await generateCardsFromText(back, 8, false);
-  setGenerated(cards);
-  setStatus(`Generated ${cards.length} cards ✨`);
-}
+  async function handleGenerate() {
+    if (!back.trim()) {
+      setStatus('Nothing to generate from');
+      return;
+    }
 
+    setStatus('Generating flashcards...');
+    const cards = await generateCardsFromText(back, 8);
+    setGenerated(cards);
+    setStatus(`Generated ${cards.length} cards`);
+  }
+
+  async function handleSaveGenerated() {
+    if (!deckId) {
+      setStatus('Select a deck first');
+      return;
+    }
+
+    for (const card of generated) {
+      await createCard(deckId, card.front.trim(), card.back.trim());
+    }
+
+    setGenerated([]);
+    setStatus('Generated cards saved');
+  }
+
+  async function handleDeckExport() {
+    if (!deckId) {
+      setStatus('Select a deck first');
+      return;
+    }
+
+    const json = await exportDeckAsJson(deckId);
+    if (!json) {
+      setStatus('Could not export this deck');
+      return;
+    }
+
+    const selectedDeck = decks.find(deck => deck.id === deckId);
+    const safeDeckName = (selectedDeck?.name ?? 'deck')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${safeDeckName || 'deck'}-export.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setStatus('Deck exported as JSON');
+  }
+
+  async function handleJsonImport(file: File) {
+    setIsImportingJson(true);
+    setStatus('Importing JSON...');
+
+    try {
+      const text = await file.text();
+      const result = await importDeckFromJson(text);
+      await loadDecks();
+      setDeckId(result.deck.id);
+      setStatus(
+        `Imported "${result.deck.name}" with ${result.importedCards} cards into subject "${result.subject.name}"`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Import failed';
+      setStatus(message);
+    } finally {
+      setIsImportingJson(false);
+    }
+  }
+
+  async function handleDeckExportCsv() {
+    if (!deckId) {
+      setStatus('Select a deck first');
+      return;
+    }
+
+    const csv = await exportDeckAsCsv(deckId);
+    if (!csv) {
+      setStatus('Could not export this deck');
+      return;
+    }
+
+    const selectedDeck = decks.find(deck => deck.id === deckId);
+    const safeDeckName = (selectedDeck?.name ?? 'deck')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${safeDeckName || 'deck'}-export.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setStatus('Deck exported as CSV');
+  }
+
+  async function handleCsvImport(file: File) {
+    if (!csvSubjectName.trim() || !csvDeckName.trim()) {
+      setStatus('Enter CSV subject and deck names before importing.');
+      return;
+    }
+
+    setIsImportingCsv(true);
+    setStatus('Importing CSV...');
+
+    try {
+      const text = await file.text();
+      const result = await importDeckFromCsv(text, csvSubjectName, csvDeckName);
+      await loadDecks();
+      setDeckId(result.deck.id);
+      setStatus(
+        `Imported CSV deck "${result.deck.name}" with ${result.importedCards} cards into subject "${result.subject.name}"`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'CSV import failed';
+      setStatus(message);
+    } finally {
+      setIsImportingCsv(false);
+    }
+  }
 
   return (
-    <div className="max-w-3xl">
-      <h1 className="text-2xl font-semibold mb-4">Create / Import</h1>
+    <div className="space-y-7">
+      <section className="saas-surface p-8">
+        <p className="saas-kicker">Content Studio</p>
+        <h1 className="saas-title mt-3">Create and Import Flashcards</h1>
+        <p className="saas-subtitle mt-3 max-w-2xl">
+          Structured workflows for manual creation, file imports, and deterministic generation.
+        </p>
+      </section>
 
-      {/* Deck selector */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Select Deck</label>
-        <select
-          value={deckId}
-          onChange={e => setDeckId(e.target.value)}
-          className="w-full border rounded p-2"
-        >
+      <section className="saas-surface p-6">
+        <label className="mb-2 block text-sm font-medium text-slate-600">Select Deck</label>
+        <select value={deckId} onChange={e => setDeckId(e.target.value)} className="saas-input p-3">
           <option value="">-- Choose a deck --</option>
-          {decks.map(d => (
-            <option key={d.id} value={d.id}>
-              {d.name}
+          {decks.map(deck => (
+            <option key={deck.id} value={deck.id}>
+              {deck.name}
             </option>
           ))}
         </select>
-      </div>
+      </section>
 
-      {/* Front */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Front</label>
-        <textarea
-          value={front}
-          onChange={e => setFront(e.target.value)}
-          className="w-full border rounded p-2"
-          rows={3}
-          placeholder="Question / Prompt"
-        />
-      </div>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className="saas-surface p-6">
+          <h2 className="text-lg font-semibold text-slate-900">JSON Transfer</h2>
+          <p className="mt-1 text-sm text-slate-500">Export the selected deck or import from a JSON backup.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={() => void handleDeckExport()} className="saas-btn-primary px-4 py-2 text-sm">
+              Export JSON
+            </button>
+            <label className="saas-btn-secondary cursor-pointer px-4 py-2 text-sm">
+              Import JSON
+              <input
+                type="file"
+                accept=".json,application/json"
+                className="hidden"
+                disabled={isImportingJson}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) void handleJsonImport(file);
+                }}
+              />
+            </label>
+          </div>
+        </article>
 
-      {/* Back */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Back</label>
-        <textarea
-          value={back}
-          onChange={e => setBack(e.target.value)}
-          className="w-full border rounded p-2"
-          rows={4}
-          placeholder="Answer / Explanation"
-        />
-      </div>
+        <article className="saas-surface p-6">
+          <h2 className="text-lg font-semibold text-slate-900">CSV Transfer</h2>
+          <p className="mt-1 text-sm text-slate-500">Move cards with spreadsheet-compatible CSV format.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={() => void handleDeckExportCsv()} className="saas-btn-primary px-4 py-2 text-sm">
+              Export CSV
+            </button>
+            <label className="saas-btn-secondary cursor-pointer px-4 py-2 text-sm">
+              Import CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                disabled={isImportingCsv}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) void handleCsvImport(file);
+                }}
+              />
+            </label>
+          </div>
+          <div className="mt-4 grid gap-2">
+            <input
+              type="text"
+              value={csvSubjectName}
+              onChange={e => setCsvSubjectName(e.target.value)}
+              placeholder="Subject name for CSV import"
+              className="saas-input p-2.5 text-sm"
+            />
+            <input
+              type="text"
+              value={csvDeckName}
+              onChange={e => setCsvDeckName(e.target.value)}
+              placeholder="Deck name for CSV import"
+              className="saas-input p-2.5 text-sm"
+            />
+          </div>
+        </article>
+      </section>
 
-      {/* Paste helper */}
-      <div className="mb-4">
-        <button
-          onClick={pasteFromClipboard}
-          className="text-sm text-brand-500 underline"
-        >
-          Paste from clipboard
-        </button>
-      </div>
-
-      {/* PDF upload — THIS IS THE FIX */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Import PDF</label>
-        <input
-          type="file"
-          accept=".pdf"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) handlePdfUpload(file);
-          }}
-          className="text-sm"
-        />
-      </div>
-      {/* Image OCR upload */}
-<div className="mb-4">
-  <label className="block text-sm font-medium mb-1">Import Image (OCR)</label>
-  <input
-    type="file"
-    accept="image/*"
-    onChange={e => {
-      const file = e.target.files?.[0];
-      if (file) handleImageUpload(file);
-    }}
-    className="text-sm"
-  />
-</div>
-{/* AI Generation */}
-<div className="mb-6 p-4 border rounded bg-gray-50">
-  <h3 className="font-medium mb-2">AI Flashcard Generator</h3>
-    <div className="mb-3 flex items-center gap-2">
-  <input
-    type="checkbox"
-    checked={useCloudAI}
-    onChange={e => setUseCloudAI(e.target.checked)}
-  />
-  <span className="text-sm">
-    Use Cloud AI (Hugging Face)
-  </span>
-</div>
-
-{useCloudAI && (
-  <p className="text-xs text-gray-500 mb-2">
-    Text will be sent to Hugging Face for processing.
-  </p>
-)}
-
-  <button
-    onClick={handleGenerate}
-    className="px-3 py-1 bg-brand-500 text-white rounded text-sm"
-  >
-    Generate flashcards from text
-  </button>
-
-  {generated.length > 0 && (
-    <div className="mt-4 space-y-3">
-      {generated.map((c, idx) => (
-        <div key={idx} className="bg-white p-3 border rounded">
-          <input
-            className="w-full font-medium mb-1 border p-1"
-            value={c.front}
-            onChange={e => {
-              const copy = [...generated];
-              copy[idx].front = e.target.value;
-              setGenerated(copy);
-            }}
-          />
-          <textarea
-            className="w-full text-sm border p-1"
-            rows={3}
-            value={c.back}
-            onChange={e => {
-              const copy = [...generated];
-              copy[idx].back = e.target.value;
-              setGenerated(copy);
-            }}
-          />
+      <section className="saas-surface p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Manual Card Editor</h2>
+        <div className="mt-4 space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-600">Front</label>
+            <textarea
+              value={front}
+              onChange={e => setFront(e.target.value)}
+              className="saas-input p-3"
+              rows={3}
+              placeholder="Question / Prompt"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-600">Back</label>
+            <textarea
+              value={back}
+              onChange={e => setBack(e.target.value)}
+              className="saas-input p-3"
+              rows={5}
+              placeholder="Answer / Explanation"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => void pasteFromClipboard()} className="saas-btn-secondary px-4 py-2 text-sm">
+              Paste from clipboard
+            </button>
+            <button onClick={() => void handleSave()} className="saas-btn-primary px-4 py-2 text-sm">
+              Save Card
+            </button>
+          </div>
         </div>
-      ))}
+      </section>
 
-      <button
-        className="mt-2 px-3 py-1 border rounded text-sm"
-        onClick={async () => {
-          if (!deckId) {
-            setStatus('Select a deck first');
-            return;
-          }
-          for (const c of generated) {
-            await createCard(deckId, c.front, c.back);
-          }
-          setGenerated([]);
-          setStatus('Generated cards saved ✅');
-        }}
-      >
-        Save all generated cards
-      </button>
-    </div>
-  )}
-</div>
+      <section className="saas-surface p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Imports and Generation</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="saas-upload cursor-pointer p-4 text-sm text-slate-600">
+            Import PDF
+            <input
+              type="file"
+              accept=".pdf"
+              className="mt-3 block"
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) void handlePdfUpload(file);
+              }}
+            />
+          </label>
+          <label className="saas-upload cursor-pointer p-4 text-sm text-slate-600">
+            Import Image (OCR)
+            <input
+              type="file"
+              accept="image/*"
+              className="mt-3 block"
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) void handleImageUpload(file);
+              }}
+            />
+          </label>
+        </div>
 
+        <div className="saas-upload mt-4 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <input type="checkbox" checked={useCloudAI} onChange={e => setUseCloudAI(e.target.checked)} />
+            <span className="text-sm text-slate-600">Use Cloud AI (Hugging Face)</span>
+          </div>
+          {useCloudAI && (
+            <p className="mb-3 text-xs text-slate-500">
+              This toggle is not currently connected. Generation uses deterministic chunking.
+            </p>
+          )}
+          <button onClick={() => void handleGenerate()} className="saas-btn-primary px-4 py-2 text-sm">
+            Generate flashcards from text
+          </button>
+        </div>
 
+        {generated.length > 0 && (
+          <div className="mt-4 space-y-3">
+            {generated.map((card, idx) => (
+              <div key={`${idx}-${card.front.slice(0, 12)}`} className="saas-surface-soft p-4">
+                <input
+                  className="saas-input mb-2 p-2 text-sm font-medium"
+                  value={card.front}
+                  onChange={e => {
+                    setGenerated(prev =>
+                      prev.map((item, index) => (index === idx ? { ...item, front: e.target.value } : item))
+                    );
+                  }}
+                />
+                <textarea
+                  className="saas-input p-2 text-sm"
+                  rows={3}
+                  value={card.back}
+                  onChange={e => {
+                    setGenerated(prev =>
+                      prev.map((item, index) => (index === idx ? { ...item, back: e.target.value } : item))
+                    );
+                  }}
+                />
+              </div>
+            ))}
 
-      <button
-        onClick={handleSave}
-        className="px-4 py-2 bg-brand-500 text-white rounded"
-      >
-        Save Card
-      </button>
+            <button onClick={() => void handleSaveGenerated()} className="saas-btn-primary px-4 py-2 text-sm">
+              Save all generated cards
+            </button>
+          </div>
+        )}
+      </section>
 
-      {status && (
-        <div className="mt-3 text-sm text-gray-600">{status}</div>
-      )}
+      {status && <div className="saas-surface p-4 text-sm text-slate-700">{status}</div>}
     </div>
   );
 }

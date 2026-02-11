@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
-import { AppShell } from './components/AppShell';
+import App from './App';
 import Dashboard from './pages/Dashboard';
 import CreateImport from './pages/CreateImport';
 import DeckView from './pages/DeckView';
@@ -13,10 +13,9 @@ import AuthPage from './pages/Auth';
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AppShell>
+      <App>
         <Routes>
           <Route path="/study" element={<StudyMode />} />
-          <Link to="/study">Study</Link>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create" element={<CreateImport />} />
@@ -25,7 +24,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/auth" element={<AuthPage />} />
         </Routes>
-      </AppShell>
+      </App>
     </BrowserRouter>
   </React.StrictMode>
 );

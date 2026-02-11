@@ -1,0 +1,309 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f7fb;
+  --bg-elevated: #fbfdff;
+  --surface: #ffffff;
+  --surface-soft: #f8fbff;
+  --border: #e6edf5;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --primary: #2563eb;
+  --primary-strong: #1d4ed8;
+  --ring: rgba(37, 99, 235, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: var(--text);
+  font-family:
+    "Inter",
+    "Avenir Next",
+    "Segoe UI",
+    "Helvetica Neue",
+    sans-serif;
+  background:
+    radial-gradient(circle at 8% 2%, rgba(59, 130, 246, 0.16), transparent 26%),
+    radial-gradient(circle at 94% 0%, rgba(14, 165, 233, 0.14), transparent 28%),
+    linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 50%, #eef3f9 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@keyframes orbOne {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(26px, -18px, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes orbTwo {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-24px, 18px, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.saas-shell {
+  position: relative;
+  min-height: 100vh;
+}
+
+.saas-orb {
+  position: fixed;
+  z-index: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(64px);
+  opacity: 0.55;
+}
+
+.saas-orb-a {
+  top: -120px;
+  left: -100px;
+  width: 340px;
+  height: 340px;
+  background: rgba(59, 130, 246, 0.42);
+  animation: orbOne 18s ease-in-out infinite;
+}
+
+.saas-orb-b {
+  top: 24%;
+  right: -120px;
+  width: 360px;
+  height: 360px;
+  background: rgba(14, 165, 233, 0.35);
+  animation: orbTwo 22s ease-in-out infinite;
+}
+
+.saas-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--border);
+  background: rgba(251, 253, 255, 0.84);
+  backdrop-filter: blur(12px);
+}
+
+.saas-page {
+  animation: pageEnter 280ms ease both;
+}
+
+.saas-container {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.saas-surface {
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.02),
+    0 10px 30px rgba(15, 23, 42, 0.06);
+  transition: all 0.18s ease;
+}
+
+.saas-surface:hover {
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 16px 34px rgba(15, 23, 42, 0.1);
+}
+
+.saas-surface-soft {
+  border-radius: 1rem;
+  border: 1px solid #eef3f9;
+  background: var(--surface-soft);
+}
+
+.saas-title {
+  font-size: clamp(1.9rem, 4vw, 2.4rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.saas-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.saas-kicker {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.saas-pill-nav {
+  border-radius: 999px;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.saas-pill-nav:hover {
+  color: var(--text);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.saas-pill-nav-active {
+  color: var(--primary-strong);
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.saas-btn-primary {
+  border: 0;
+  border-radius: 0.8rem;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-weight: 600;
+  transition: all 0.18s ease;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
+}
+
+.saas-btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.saas-btn-secondary {
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+  color: #334155;
+  font-weight: 500;
+  transition: all 0.18s ease;
+}
+
+.saas-btn-secondary:hover {
+  border-color: #d5dfeb;
+  background: #f8fbff;
+}
+
+.saas-btn-primary:focus-visible,
+.saas-btn-secondary:focus-visible,
+.saas-pill-nav:focus-visible,
+.saas-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.saas-input {
+  width: 100%;
+  border-radius: 0.8rem;
+  border: 1px solid #dbe5f1;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.16s ease;
+}
+
+.saas-input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  outline: none;
+}
+
+.saas-upload {
+  border: 1.5px dashed #cbd8e6;
+  border-radius: 0.95rem;
+  background: #f8fbff;
+}
+
+.saas-grid-main {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.saas-flashcard-scene {
+  display: block;
+  width: 100%;
+  perspective: 1400px;
+}
+
+.saas-flashcard {
+  position: relative;
+  width: 100%;
+  min-height: 360px;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+
+.saas-flashcard.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.saas-flashcard-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(165deg, #ffffff, #f8fbff);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  padding: 1.7rem;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow-y: auto;
+}
+
+.saas-flashcard-front {
+  transform: rotateY(0deg);
+}
+
+.saas-flashcard-back {
+  transform: rotateY(180deg);
+}
+
+@media (max-width: 1024px) {
+  .saas-orb {
+    opacity: 0.45;
+  }
+}
+
+@media (max-width: 768px) {
+  .saas-container {
+    padding-inline: 1rem;
+  }
+
+  .saas-flashcard {
+    min-height: 320px;
+  }
+}

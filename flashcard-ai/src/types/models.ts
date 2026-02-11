@@ -27,3 +27,29 @@ export type Card = {
   back: string;
   reviewState: ReviewState;
 };
+
+export type ReviewHistoryEntry = {
+  id: string;
+  cardId: string;
+  deckId: string;
+  quality: 1 | 2 | 3 | 4 | 5;
+  reviewedAt: number;
+};
+
+export type DeckExportPayload = {
+  version: 1;
+  exportedAt: number;
+  subject: {
+    name: string;
+    description?: string;
+  };
+  deck: {
+    name: string;
+    createdAt: number;
+  };
+  cards: Array<{
+    front: string;
+    back: string;
+    reviewState: ReviewState;
+  }>;
+};
