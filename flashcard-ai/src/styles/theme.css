@@ -1,40 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap');
+
 :root {
-  color-scheme: light;
-  --bg: #f4f7fb;
-  --bg-elevated: #fbfdff;
-  --surface: #ffffff;
-  --surface-soft: #f8fbff;
-  --border: #e6edf5;
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --primary: #2563eb;
-  --primary-strong: #1d4ed8;
-  --ring: rgba(37, 99, 235, 0.22);
+  color-scheme: light dark;
+
+  --bg-primary: #f4f6fb;
+  --bg-secondary: #edf2f8;
+  --surface: #fbfcfe;
+  --surface-elevated: #fefeff;
+  --text-primary: #0f1728;
+  --text-muted: #5f6c81;
+  --accent: #3a63ff;
+  --accent-hover: #2f55ee;
+  --border-subtle: #dde6f2;
+  --shadow-color: 20 31 51;
+
+  --danger: #cb4b5f;
+  --danger-hover: #b54053;
+  --danger-soft: #fff1f3;
+  --danger-border: #f2c8d0;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+
+  --font-body: 'Inter', 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-heading: 'Manrope', 'Inter', 'Avenir Next', sans-serif;
+
+  --surface-soft: color-mix(in srgb, var(--surface) 82%, var(--bg-secondary));
+  --surface-muted: color-mix(in srgb, var(--surface) 58%, var(--bg-secondary));
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --ring: color-mix(in srgb, var(--accent) 28%, transparent);
+
+  --shadow-sm: 0 8px 22px rgba(var(--shadow-color), 0.05);
+  --shadow-md: 0 20px 40px rgba(var(--shadow-color), 0.08);
+  --shadow-lg: 0 28px 56px rgba(var(--shadow-color), 0.12);
+
+  --motion-fast: 200ms;
+  --motion-medium: 280ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.theme-light {
+  --bg-primary: #f4f6fb;
+  --bg-secondary: #ecf1f7;
+  --surface: #fbfcfe;
+  --surface-elevated: #fefeff;
+  --text-primary: #0f1728;
+  --text-muted: #5f6c81;
+  --accent: #3a63ff;
+  --accent-hover: #2f55ee;
+  --border-subtle: #dbe5f1;
+  --shadow-color: 20 31 51;
+
+  --shadow-sm: 0 8px 24px rgba(var(--shadow-color), 0.06);
+  --shadow-md: 0 20px 42px rgba(var(--shadow-color), 0.08);
+  --shadow-lg: 0 32px 64px rgba(var(--shadow-color), 0.12);
+}
+
+.theme-dark {
+  color-scheme: dark;
+  --bg-primary: #0f131a;
+  --bg-secondary: #141b25;
+  --surface: #171f2b;
+  --surface-elevated: #1d2734;
+  --text-primary: #e7edf7;
+  --text-muted: #9ba9bc;
+  --accent: #6f95ff;
+  --accent-hover: #88a8ff;
+  --border-subtle: #2c3748;
+  --shadow-color: 6 10 18;
+
+  --danger: #f08897;
+  --danger-hover: #f6a2af;
+  --danger-soft: #2b1a20;
+  --danger-border: #553541;
+
+  --surface-soft: color-mix(in srgb, var(--surface) 80%, #202b39);
+  --surface-muted: color-mix(in srgb, var(--surface) 64%, #243245);
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+
+  --shadow-sm: 0 6px 18px rgba(var(--shadow-color), 0.2);
+  --shadow-md: 0 16px 34px rgba(var(--shadow-color), 0.24);
+  --shadow-lg: 0 24px 50px rgba(var(--shadow-color), 0.28);
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
-  color: var(--text);
-  font-family:
-    "Inter",
-    "Avenir Next",
-    "Segoe UI",
-    "Helvetica Neue",
-    sans-serif;
-  background:
-    radial-gradient(circle at 8% 2%, rgba(59, 130, 246, 0.16), transparent 26%),
-    radial-gradient(circle at 94% 0%, rgba(14, 165, 233, 0.14), transparent 28%),
-    linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 50%, #eef3f9 100%);
-}
-
+html,
+body,
 #root {
   min-height: 100vh;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.theme-light body {
+  background:
+    radial-gradient(circle at 8% 3%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 34%),
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, #22d3ee 16%, transparent), transparent 38%),
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 54%, #e8eef7 100%);
+}
+
+.theme-dark body {
+  background:
+    radial-gradient(circle at 14% -8%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 34%),
+    radial-gradient(circle at 86% 0%, rgba(84, 120, 255, 0.13), transparent 42%),
+    linear-gradient(180deg, #0f131a 0%, var(--bg-primary) 36%, var(--bg-secondary) 100%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
 }
 
 @keyframes orbOne {
@@ -42,7 +166,7 @@ body {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(26px, -18px, 0) scale(1.08);
+    transform: translate3d(28px, -18px, 0) scale(1.08);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -54,14 +178,14 @@ body {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translate3d(-24px, 18px, 0) scale(1.06);
+    transform: translate3d(-24px, 20px, 0) scale(1.06);
   }
   100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
-@keyframes pageEnter {
+@keyframes fadeEnter {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -82,174 +206,258 @@ body {
   z-index: 0;
   border-radius: 999px;
   pointer-events: none;
-  filter: blur(64px);
-  opacity: 0.55;
+  filter: blur(68px);
+  opacity: 0.5;
 }
 
 .saas-orb-a {
-  top: -120px;
-  left: -100px;
-  width: 340px;
-  height: 340px;
-  background: rgba(59, 130, 246, 0.42);
+  top: -140px;
+  left: -110px;
+  width: 360px;
+  height: 360px;
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
   animation: orbOne 18s ease-in-out infinite;
 }
 
 .saas-orb-b {
-  top: 24%;
-  right: -120px;
-  width: 360px;
-  height: 360px;
-  background: rgba(14, 165, 233, 0.35);
+  top: 25%;
+  right: -130px;
+  width: 380px;
+  height: 380px;
+  background: color-mix(in srgb, #22d3ee 24%, transparent);
   animation: orbTwo 22s ease-in-out infinite;
+}
+
+.theme-dark .saas-orb {
+  opacity: 0.35;
 }
 
 .saas-nav {
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid var(--border);
-  background: rgba(251, 253, 255, 0.84);
-  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-elevated) 78%, transparent);
+  backdrop-filter: blur(16px);
 }
 
 .saas-page {
-  animation: pageEnter 280ms ease both;
+  animation: fadeEnter var(--motion-medium) var(--ease-standard) both;
 }
 
 .saas-container {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 72rem;
+  max-width: 78rem;
   margin-inline: auto;
-  padding-inline: 1.25rem;
+  padding-inline: var(--space-6);
 }
 
 .saas-surface {
-  border-radius: 1rem;
-  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
   background: var(--surface);
-  box-shadow:
-    0 1px 1px rgba(15, 23, 42, 0.02),
-    0 10px 30px rgba(15, 23, 42, 0.06);
-  transition: all 0.18s ease;
+  box-shadow: var(--shadow-md);
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard);
 }
 
 .saas-surface:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.theme-dark .saas-surface {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, #1f2a3a) 0%, var(--surface) 100%);
   box-shadow:
-    0 1px 1px rgba(15, 23, 42, 0.04),
-    0 16px 34px rgba(15, 23, 42, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    var(--shadow-md);
 }
 
 .saas-surface-soft {
-  border-radius: 1rem;
-  border: 1px solid #eef3f9;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
   background: var(--surface-soft);
 }
 
 .saas-title {
-  font-size: clamp(1.9rem, 4vw, 2.4rem);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  font-weight: 700;
-  color: var(--text);
+  font-size: clamp(2.75rem, 5.4vw, 4.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+  color: var(--text-primary);
 }
 
 .saas-subtitle {
-  font-size: 0.95rem;
+  font-size: 1.06rem;
+  line-height: 1.6;
   color: var(--text-muted);
 }
 
 .saas-kicker {
   font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-weight: 600;
-  color: var(--primary);
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .saas-pill-nav {
   border-radius: 999px;
-  padding: 0.55rem 0.95rem;
-  font-size: 0.85rem;
+  border: 1px solid transparent;
+  padding: 10px 16px;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-muted);
-  transition: all 0.16s ease;
+  transition: all var(--motion-fast) var(--ease-standard);
   white-space: nowrap;
 }
 
 .saas-pill-nav:hover {
-  color: var(--text);
-  background: rgba(37, 99, 235, 0.08);
+  color: var(--text-primary);
+  background: var(--accent-soft);
 }
 
 .saas-pill-nav-active {
-  color: var(--primary-strong);
-  background: rgba(37, 99, 235, 0.12);
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-subtle));
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+}
+
+.saas-badge {
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border-subtle));
+}
+
+.saas-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-elevated) 90%, transparent);
+  color: var(--text-primary);
+  padding: 6px 12px 6px 7px;
+  cursor: pointer;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.saas-theme-toggle:hover {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-subtle));
+  background: var(--surface);
+}
+
+.saas-theme-toggle-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.theme-dark .saas-theme-toggle-thumb {
+  transform: translateX(1px);
+}
+
+.saas-theme-toggle-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.saas-btn-primary,
+.saas-btn-secondary {
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  transition: all var(--motion-fast) var(--ease-standard);
 }
 
 .saas-btn-primary {
-  border: 0;
-  border-radius: 0.8rem;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: #ffffff;
-  font-weight: 600;
-  transition: all 0.18s ease;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #f6f8ff;
 }
 
 .saas-btn-primary:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.03);
+  background: var(--accent-hover);
+  transform: scale(1.02);
 }
 
 .saas-btn-secondary {
-  border: 1px solid var(--border);
-  border-radius: 0.8rem;
-  background: var(--surface);
-  color: #334155;
-  font-weight: 500;
-  transition: all 0.18s ease;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  color: var(--text-primary);
 }
 
 .saas-btn-secondary:hover {
-  border-color: #d5dfeb;
-  background: #f8fbff;
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border-subtle));
+  background: var(--accent-soft);
+}
+
+.saas-btn-danger {
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-weight: 600;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.saas-btn-danger:hover {
+  background: color-mix(in srgb, var(--danger-soft) 84%, var(--danger));
+  color: var(--danger-hover);
 }
 
 .saas-btn-primary:focus-visible,
 .saas-btn-secondary:focus-visible,
+.saas-btn-danger:focus-visible,
 .saas-pill-nav:focus-visible,
-.saas-input:focus-visible {
+.saas-input:focus-visible,
+.saas-theme-toggle:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
 .saas-input {
   width: 100%;
-  border-radius: 0.8rem;
-  border: 1px solid #dbe5f1;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.16s ease;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.saas-input::placeholder {
+  color: color-mix(in srgb, var(--text-muted) 82%, transparent);
 }
 
 .saas-input:focus {
-  border-color: #93c5fd;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
+  box-shadow: 0 0 0 4px var(--ring);
   outline: none;
 }
 
 .saas-upload {
-  border: 1.5px dashed #cbd8e6;
-  border-radius: 0.95rem;
-  background: #f8fbff;
+  border: 1.5px dashed color-mix(in srgb, var(--border-subtle) 80%, var(--accent));
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
 }
 
 .saas-grid-main {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-6);
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
@@ -262,9 +470,9 @@ body {
 .saas-flashcard {
   position: relative;
   width: 100%;
-  min-height: 360px;
+  min-height: 380px;
   transform-style: preserve-3d;
-  transition: transform 0.45s cubic-bezier(0.2, 0.75, 0.2, 1);
+  transition: transform 460ms var(--ease-standard);
 }
 
 .saas-flashcard.is-flipped {
@@ -274,14 +482,20 @@ body {
 .saas-flashcard-face {
   position: absolute;
   inset: 0;
-  border-radius: 1rem;
-  border: 1px solid var(--border);
-  background: linear-gradient(165deg, #ffffff, #f8fbff);
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
-  padding: 1.7rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(170deg, var(--surface-elevated), var(--surface-soft));
+  box-shadow: var(--shadow-md);
+  padding: var(--space-8);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   overflow-y: auto;
+}
+
+.theme-dark .saas-flashcard-face {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    var(--shadow-sm);
 }
 
 .saas-flashcard-front {
@@ -292,18 +506,91 @@ body {
   transform: rotateY(180deg);
 }
 
+.saas-layout-container {
+  width: min(100%, 78rem);
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+
+.saas-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-8);
+}
+
+.saas-fade-in {
+  animation: fadeEnter var(--motion-medium) var(--ease-standard) both;
+}
+
+/* Tokenized mappings for existing utility classes used in TSX files */
+.text-slate-900,
+.text-slate-700,
+.text-gray-300,
+.text-gray-200 {
+  color: var(--text-primary) !important;
+}
+
+.text-slate-600,
+.text-slate-500,
+.text-slate-400,
+.text-gray-500,
+.text-gray-400 {
+  color: var(--text-muted) !important;
+}
+
+.text-blue-700 {
+  color: var(--accent-hover) !important;
+}
+
+.bg-blue-50 {
+  background-color: var(--accent-soft) !important;
+}
+
+.bg-slate-100,
+.bg-slate-50\/50 {
+  background-color: var(--surface-muted) !important;
+}
+
+.bg-blue-600 {
+  background-color: var(--accent) !important;
+}
+
+.border-slate-100 {
+  border-color: var(--border-subtle) !important;
+}
+
+.text-rose-600 {
+  color: var(--danger) !important;
+}
+
+.bg-rose-50,
+.bg-rose-100 {
+  background-color: var(--danger-soft) !important;
+}
+
+.border-rose-200 {
+  border-color: var(--danger-border) !important;
+}
+
 @media (max-width: 1024px) {
   .saas-orb {
-    opacity: 0.45;
+    opacity: 0.28;
   }
 }
 
 @media (max-width: 768px) {
-  .saas-container {
-    padding-inline: 1rem;
+  .saas-container,
+  .saas-layout-container {
+    padding-inline: var(--space-4);
+  }
+
+  .saas-title {
+    font-size: clamp(2.4rem, 10vw, 3.3rem);
   }
 
   .saas-flashcard {
-    min-height: 320px;
+    min-height: 340px;
   }
 }

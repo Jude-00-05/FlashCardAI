@@ -8,6 +8,14 @@ type EditorState = {
   back: string;
 };
 
+function formatDueDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
 export default function DeckView() {
   const { deckId } = useParams<{ deckId: string }>();
 
@@ -48,6 +56,8 @@ export default function DeckView() {
   }, [load]);
 
   const totalCards = useMemo(() => cards.length, [cards.length]);
+  const dueCount = useMemo(() => cards.filter(card => card.reviewState.due <= Date.now()).length, [cards]);
+  const scheduledCount = totalCards - dueCount;
 
   function startEdit(card: Card) {
     setEditingCardId(card.id);
@@ -137,20 +147,30 @@ export default function DeckView() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="saas-surface p-8">
-        <Link to="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
-          Back to dashboard
-        </Link>
-        <h1 className="saas-title mt-2">{deckName}</h1>
-        <p className="saas-subtitle mt-2">{totalCards} card(s)</p>
+    <div className="space-y-7">
+      <section className="saas-surface p-8 md:p-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <Link to="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
+              Back to dashboard
+            </Link>
+            <h1 className="saas-title mt-3">{deckName}</h1>
+            <p className="saas-subtitle mt-3">Manage cards, update content, and review due status.</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{totalCards} total</span>
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{dueCount} due</span>
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{scheduledCount} scheduled</span>
+          </div>
+        </div>
       </section>
 
-      <div className="flex justify-end">
+      <section className="flex justify-end">
         <Link to="/create" className="saas-btn-primary px-4 py-2 text-sm">
           Add Card
         </Link>
-      </div>
+      </section>
 
       {error && <div className="saas-surface p-4 text-sm text-rose-600">{error}</div>}
 
@@ -164,56 +184,67 @@ export default function DeckView() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {cards.map(card => {
+        <section className="space-y-4">
+          {cards.map((card, cardIndex) => {
             const isEditing = editingCardId === card.id;
             const isSaving = savingCardId === card.id;
             const isDeleting = deletingCardId === card.id;
             const isFlipped = flippedCardIds.has(card.id);
+            const isDue = card.reviewState.due <= Date.now();
 
             return (
-              <div key={card.id} className="saas-surface p-5">
+              <article key={card.id} className="saas-surface p-5">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
+                      Card {cardIndex + 1}
+                    </span>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        isDue ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      {isDue ? 'Due now' : `Due ${formatDueDate(card.reviewState.due)}`}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-500">
+                    Interval {card.reviewState.interval}d | Repetition {card.reviewState.repetition}
+                  </div>
+                </div>
+
                 {isEditing && editor ? (
                   <>
                     <div className="mb-3">
-                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Front
-                      </label>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Front</label>
                       <textarea
                         value={editor.front}
-                        onChange={e => setEditor(prev => (prev ? { ...prev, front: e.target.value } : prev))}
-                        rows={2}
+                        onChange={event => setEditor(prev => (prev ? { ...prev, front: event.target.value } : prev))}
+                        rows={3}
                         className="saas-input p-3 text-sm"
                       />
                     </div>
 
                     <div className="mb-4">
-                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Back
-                      </label>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Back</label>
                       <textarea
                         value={editor.back}
-                        onChange={e => setEditor(prev => (prev ? { ...prev, back: e.target.value } : prev))}
-                        rows={4}
+                        onChange={event => setEditor(prev => (prev ? { ...prev, back: event.target.value } : prev))}
+                        rows={5}
                         className="saas-input p-3 text-sm"
                       />
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={saveEdit}
+                        onClick={() => void saveEdit()}
                         disabled={isSaving}
                         className="saas-btn-primary px-4 py-2 text-sm disabled:opacity-60"
                       >
-                        {isSaving ? 'Saving...' : 'Save'}
+                        {isSaving ? 'Saving...' : 'Save Changes'}
                       </button>
-                      <button
-                        type="button"
-                        onClick={cancelEdit}
-                        disabled={isSaving}
-                        className="saas-btn-secondary px-4 py-2 text-sm"
-                      >
+                      <button type="button" onClick={cancelEdit} disabled={isSaving} className="saas-btn-secondary px-4 py-2 text-sm">
                         Cancel
                       </button>
                     </div>
@@ -240,25 +271,25 @@ export default function DeckView() {
                       </div>
                     </button>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button type="button" onClick={() => startEdit(card)} className="saas-btn-secondary px-4 py-2 text-sm">
                         Edit
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(card.id)}
+                        onClick={() => void handleDelete(card.id)}
                         disabled={isDeleting}
-                        className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 transition-all duration-200 hover:bg-rose-100 disabled:opacity-60"
+                        className="saas-btn-danger px-4 py-2 text-sm disabled:opacity-60"
                       >
                         {isDeleting ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </>
                 )}
-              </div>
+              </article>
             );
           })}
-        </div>
+        </section>
       )}
     </div>
   );

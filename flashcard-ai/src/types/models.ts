@@ -53,3 +53,11 @@ export type DeckExportPayload = {
     reviewState: ReviewState;
   }>;
 };
+
+export type WorkspaceBackupPayload = {
+  version: 1;
+  exportedAt: number;
+  subjects: Subject[];
+  decks: Deck[];
+  cards: Card[];
+};

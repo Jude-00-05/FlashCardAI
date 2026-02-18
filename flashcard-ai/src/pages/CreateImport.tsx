@@ -1,16 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { generateCardsFromText } from '../lib/ai';
 import { extractTextFromImage } from '../lib/ocr';
 import { extractTextFromPdf } from '../lib/pdf';
 import {
   createCard,
+  createDeck,
+  deleteDeck,
   exportDeckAsCsv,
   exportDeckAsJson,
-  getDecks,
+  getDecksBySubject,
+  getSubjects,
   importDeckFromCsv,
-  importDeckFromJson
+  importDeckFromJson,
+  renameDeck
 } from '../lib/storage';
-import type { Deck } from '../types/models';
+import type { Deck, Subject } from '../types/models';
 
 type GeneratedCard = {
   front: string;
@@ -18,37 +22,136 @@ type GeneratedCard = {
 };
 
 export default function CreateImport() {
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectId, setSubjectId] = useState('');
   const [decks, setDecks] = useState<Deck[]>([]);
   const [deckId, setDeckId] = useState('');
+
+  const [newDeckName, setNewDeckName] = useState('');
+  const [renameDeckName, setRenameDeckName] = useState('');
+
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
   const [status, setStatus] = useState('');
-  const [useCloudAI, setUseCloudAI] = useState(false);
   const [generated, setGenerated] = useState<GeneratedCard[]>([]);
   const [isImportingJson, setIsImportingJson] = useState(false);
   const [isImportingCsv, setIsImportingCsv] = useState(false);
   const [csvSubjectName, setCsvSubjectName] = useState('');
   const [csvDeckName, setCsvDeckName] = useState('');
 
+  const selectedDeck = useMemo(() => decks.find(deck => deck.id === deckId) ?? null, [decks, deckId]);
+
+  const loadSubjects = useCallback(async () => {
+    const data = await getSubjects();
+    setSubjects(data);
+
+    if (!subjectId && data.length > 0) {
+      setSubjectId(data[0].id);
+    }
+  }, [subjectId]);
+
   const loadDecks = useCallback(async () => {
-    const data = await getDecks();
+    if (!subjectId) {
+      setDecks([]);
+      setDeckId('');
+      return;
+    }
+
+    const data = await getDecksBySubject(subjectId);
     setDecks(data);
-  }, []);
+
+    if (data.length === 0) {
+      setDeckId('');
+      return;
+    }
+
+    const stillExists = data.some(deck => deck.id === deckId);
+    if (!stillExists) {
+      setDeckId(data[0].id);
+    }
+  }, [subjectId, deckId]);
+
+  useEffect(() => {
+    void loadSubjects();
+  }, [loadSubjects]);
 
   useEffect(() => {
     void loadDecks();
   }, [loadDecks]);
 
+  async function handleCreateDeck() {
+    if (!subjectId) {
+      setStatus('Select a subject first.');
+      return;
+    }
+
+    const name = newDeckName.trim();
+    if (!name) {
+      setStatus('Deck name is required.');
+      return;
+    }
+
+    const created = await createDeck(subjectId, name);
+    setNewDeckName('');
+    setDeckId(created.id);
+    await loadDecks();
+    setStatus(`Deck "${created.name}" created.`);
+  }
+
+  async function handleRenameDeck() {
+    if (!deckId) {
+      setStatus('Select a deck to rename.');
+      return;
+    }
+
+    const nextName = renameDeckName.trim();
+    if (!nextName) {
+      setStatus('Enter a new deck name.');
+      return;
+    }
+
+    const updated = await renameDeck(deckId, nextName);
+    if (!updated) {
+      setStatus('Failed to rename deck.');
+      return;
+    }
+
+    setRenameDeckName('');
+    await loadDecks();
+    setStatus(`Deck renamed to "${updated.name}".`);
+  }
+
+  async function handleDeleteDeck() {
+    if (!deckId || !selectedDeck) {
+      setStatus('Select a deck to delete.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete deck "${selectedDeck.name}" and all its cards?`);
+    if (!confirmed) return;
+
+    const ok = await deleteDeck(deckId);
+    if (!ok) {
+      setStatus('Failed to delete deck.');
+      return;
+    }
+
+    setStatus(`Deck "${selectedDeck.name}" deleted.`);
+    setDeckId('');
+    setRenameDeckName('');
+    await loadDecks();
+  }
+
   async function handleSave() {
     if (!deckId || !front.trim() || !back.trim()) {
-      setStatus('Please select a deck and fill both sides');
+      setStatus('Please select a deck and fill both sides.');
       return;
     }
 
     await createCard(deckId, front.trim(), back.trim());
     setFront('');
     setBack('');
-    setStatus('Card saved');
+    setStatus('Card saved.');
   }
 
   async function pasteFromClipboard() {
@@ -62,7 +165,7 @@ export default function CreateImport() {
     const text = await extractTextFromPdf(file);
     setFront(text.split('\n')[0] ?? '');
     setBack(text);
-    setStatus('PDF imported');
+    setStatus('PDF imported.');
   }
 
   async function handleImageUpload(file: File) {
@@ -70,24 +173,24 @@ export default function CreateImport() {
     const text = await extractTextFromImage(file);
     setFront(text.split('\n')[0] ?? '');
     setBack(text);
-    setStatus('Image imported');
+    setStatus('Image imported.');
   }
 
   async function handleGenerate() {
     if (!back.trim()) {
-      setStatus('Nothing to generate from');
+      setStatus('Nothing to generate from.');
       return;
     }
 
     setStatus('Generating flashcards...');
     const cards = await generateCardsFromText(back, 8);
     setGenerated(cards);
-    setStatus(`Generated ${cards.length} cards`);
+    setStatus(`Generated ${cards.length} cards.`);
   }
 
   async function handleSaveGenerated() {
     if (!deckId) {
-      setStatus('Select a deck first');
+      setStatus('Select a deck first.');
       return;
     }
 
@@ -96,22 +199,21 @@ export default function CreateImport() {
     }
 
     setGenerated([]);
-    setStatus('Generated cards saved');
+    setStatus('Generated cards saved.');
   }
 
   async function handleDeckExport() {
     if (!deckId) {
-      setStatus('Select a deck first');
+      setStatus('Select a deck first.');
       return;
     }
 
     const json = await exportDeckAsJson(deckId);
     if (!json) {
-      setStatus('Could not export this deck');
+      setStatus('Could not export this deck.');
       return;
     }
 
-    const selectedDeck = decks.find(deck => deck.id === deckId);
     const safeDeckName = (selectedDeck?.name ?? 'deck')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -124,7 +226,7 @@ export default function CreateImport() {
     anchor.download = `${safeDeckName || 'deck'}-export.json`;
     anchor.click();
     URL.revokeObjectURL(url);
-    setStatus('Deck exported as JSON');
+    setStatus('Deck exported as JSON.');
   }
 
   async function handleJsonImport(file: File) {
@@ -134,13 +236,12 @@ export default function CreateImport() {
     try {
       const text = await file.text();
       const result = await importDeckFromJson(text);
-      await loadDecks();
+      await loadSubjects();
+      setSubjectId(result.deck.subjectId);
       setDeckId(result.deck.id);
-      setStatus(
-        `Imported "${result.deck.name}" with ${result.importedCards} cards into subject "${result.subject.name}"`
-      );
+      setStatus(`Imported "${result.deck.name}" with ${result.importedCards} cards into subject "${result.subject.name}".`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Import failed';
+      const message = error instanceof Error ? error.message : 'Import failed.';
       setStatus(message);
     } finally {
       setIsImportingJson(false);
@@ -149,17 +250,16 @@ export default function CreateImport() {
 
   async function handleDeckExportCsv() {
     if (!deckId) {
-      setStatus('Select a deck first');
+      setStatus('Select a deck first.');
       return;
     }
 
     const csv = await exportDeckAsCsv(deckId);
     if (!csv) {
-      setStatus('Could not export this deck');
+      setStatus('Could not export this deck.');
       return;
     }
 
-    const selectedDeck = decks.find(deck => deck.id === deckId);
     const safeDeckName = (selectedDeck?.name ?? 'deck')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -172,7 +272,7 @@ export default function CreateImport() {
     anchor.download = `${safeDeckName || 'deck'}-export.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
-    setStatus('Deck exported as CSV');
+    setStatus('Deck exported as CSV.');
   }
 
   async function handleCsvImport(file: File) {
@@ -187,13 +287,12 @@ export default function CreateImport() {
     try {
       const text = await file.text();
       const result = await importDeckFromCsv(text, csvSubjectName, csvDeckName);
-      await loadDecks();
+      await loadSubjects();
+      setSubjectId(result.deck.subjectId);
       setDeckId(result.deck.id);
-      setStatus(
-        `Imported CSV deck "${result.deck.name}" with ${result.importedCards} cards into subject "${result.subject.name}"`
-      );
+      setStatus(`Imported CSV deck "${result.deck.name}" with ${result.importedCards} cards into subject "${result.subject.name}".`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'CSV import failed';
+      const message = error instanceof Error ? error.message : 'CSV import failed.';
       setStatus(message);
     } finally {
       setIsImportingCsv(false);
@@ -210,16 +309,63 @@ export default function CreateImport() {
         </p>
       </section>
 
-      <section className="saas-surface p-6">
-        <label className="mb-2 block text-sm font-medium text-slate-600">Select Deck</label>
-        <select value={deckId} onChange={e => setDeckId(e.target.value)} className="saas-input p-3">
-          <option value="">-- Choose a deck --</option>
-          {decks.map(deck => (
-            <option key={deck.id} value={deck.id}>
-              {deck.name}
-            </option>
-          ))}
-        </select>
+      <section className="saas-surface p-6 space-y-4">
+        <h2 className="text-lg font-semibold text-slate-900">Deck Management</h2>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-600">Select Subject</label>
+            <select value={subjectId} onChange={event => setSubjectId(event.target.value)} className="saas-input p-3">
+              <option value="">-- Choose a subject --</option>
+              {subjects.map(subject => (
+                <option key={subject.id} value={subject.id}>
+                  {subject.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-600">Select Deck</label>
+            <select value={deckId} onChange={event => setDeckId(event.target.value)} className="saas-input p-3">
+              <option value="">-- Choose a deck --</option>
+              {decks.map(deck => (
+                <option key={deck.id} value={deck.id}>
+                  {deck.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <input
+            type="text"
+            value={newDeckName}
+            onChange={event => setNewDeckName(event.target.value)}
+            placeholder="New deck name"
+            className="saas-input p-3"
+          />
+          <button onClick={() => void handleCreateDeck()} className="saas-btn-primary px-4 py-2 text-sm">
+            Add Deck
+          </button>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+          <input
+            type="text"
+            value={renameDeckName}
+            onChange={event => setRenameDeckName(event.target.value)}
+            placeholder="Rename selected deck"
+            className="saas-input p-3"
+          />
+          <button onClick={() => void handleRenameDeck()} className="saas-btn-secondary px-4 py-2 text-sm">
+            Rename Deck
+          </button>
+          <button onClick={() => void handleDeleteDeck()} className="saas-btn-danger px-4 py-2 text-sm">
+            Delete Deck
+          </button>
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
@@ -237,9 +383,9 @@ export default function CreateImport() {
                 accept=".json,application/json"
                 className="hidden"
                 disabled={isImportingJson}
-                onChange={e => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
+                onChange={event => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
                   if (file) void handleJsonImport(file);
                 }}
               />
@@ -261,9 +407,9 @@ export default function CreateImport() {
                 accept=".csv,text/csv"
                 className="hidden"
                 disabled={isImportingCsv}
-                onChange={e => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
+                onChange={event => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
                   if (file) void handleCsvImport(file);
                 }}
               />
@@ -273,14 +419,14 @@ export default function CreateImport() {
             <input
               type="text"
               value={csvSubjectName}
-              onChange={e => setCsvSubjectName(e.target.value)}
+              onChange={event => setCsvSubjectName(event.target.value)}
               placeholder="Subject name for CSV import"
               className="saas-input p-2.5 text-sm"
             />
             <input
               type="text"
               value={csvDeckName}
-              onChange={e => setCsvDeckName(e.target.value)}
+              onChange={event => setCsvDeckName(event.target.value)}
               placeholder="Deck name for CSV import"
               className="saas-input p-2.5 text-sm"
             />
@@ -295,7 +441,7 @@ export default function CreateImport() {
             <label className="mb-2 block text-sm font-medium text-slate-600">Front</label>
             <textarea
               value={front}
-              onChange={e => setFront(e.target.value)}
+              onChange={event => setFront(event.target.value)}
               className="saas-input p-3"
               rows={3}
               placeholder="Question / Prompt"
@@ -305,7 +451,7 @@ export default function CreateImport() {
             <label className="mb-2 block text-sm font-medium text-slate-600">Back</label>
             <textarea
               value={back}
-              onChange={e => setBack(e.target.value)}
+              onChange={event => setBack(event.target.value)}
               className="saas-input p-3"
               rows={5}
               placeholder="Answer / Explanation"
@@ -323,7 +469,7 @@ export default function CreateImport() {
       </section>
 
       <section className="saas-surface p-6">
-        <h2 className="text-lg font-semibold text-slate-900">Imports and Generation</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Imports and Deterministic Generation</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="saas-upload cursor-pointer p-4 text-sm text-slate-600">
             Import PDF
@@ -331,8 +477,8 @@ export default function CreateImport() {
               type="file"
               accept=".pdf"
               className="mt-3 block"
-              onChange={e => {
-                const file = e.target.files?.[0];
+              onChange={event => {
+                const file = event.target.files?.[0];
                 if (file) void handlePdfUpload(file);
               }}
             />
@@ -343,8 +489,8 @@ export default function CreateImport() {
               type="file"
               accept="image/*"
               className="mt-3 block"
-              onChange={e => {
-                const file = e.target.files?.[0];
+              onChange={event => {
+                const file = event.target.files?.[0];
                 if (file) void handleImageUpload(file);
               }}
             />
@@ -352,15 +498,7 @@ export default function CreateImport() {
         </div>
 
         <div className="saas-upload mt-4 p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <input type="checkbox" checked={useCloudAI} onChange={e => setUseCloudAI(e.target.checked)} />
-            <span className="text-sm text-slate-600">Use Cloud AI (Hugging Face)</span>
-          </div>
-          {useCloudAI && (
-            <p className="mb-3 text-xs text-slate-500">
-              This toggle is not currently connected. Generation uses deterministic chunking.
-            </p>
-          )}
+          <p className="mb-3 text-sm text-slate-600">Generation uses deterministic chunking only.</p>
           <button onClick={() => void handleGenerate()} className="saas-btn-primary px-4 py-2 text-sm">
             Generate flashcards from text
           </button>
@@ -373,9 +511,9 @@ export default function CreateImport() {
                 <input
                   className="saas-input mb-2 p-2 text-sm font-medium"
                   value={card.front}
-                  onChange={e => {
+                  onChange={event => {
                     setGenerated(prev =>
-                      prev.map((item, index) => (index === idx ? { ...item, front: e.target.value } : item))
+                      prev.map((item, index) => (index === idx ? { ...item, front: event.target.value } : item))
                     );
                   }}
                 />
@@ -383,9 +521,9 @@ export default function CreateImport() {
                   className="saas-input p-2 text-sm"
                   rows={3}
                   value={card.back}
-                  onChange={e => {
+                  onChange={event => {
                     setGenerated(prev =>
-                      prev.map((item, index) => (index === idx ? { ...item, back: e.target.value } : item))
+                      prev.map((item, index) => (index === idx ? { ...item, back: event.target.value } : item))
                     );
                   }}
                 />

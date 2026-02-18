@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
-import { getReviewHistory } from '../lib/storage';
+import { getCardsByDeck, getDecks, getReviewHistory } from '../lib/storage';
 import type { ReviewHistoryEntry } from '../types/models';
 
 const DAYS_WINDOW = 14;
+
+type AnalyticsStats = {
+  totalCards: number;
+  dueToday: number;
+  reviewsCompleted: number;
+  accuracy: number;
+};
 
 function toDayKey(date: Date): string {
   const y = date.getFullYear();
@@ -28,29 +35,61 @@ function getLastNDaysWindow(days: number): { key: string; label: string }[] {
   return result;
 }
 
+function getThemeToken(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 export default function Analytics() {
   const [history, setHistory] = useState<ReviewHistoryEntry[]>([]);
+  const [stats, setStats] = useState<AnalyticsStats>({
+    totalCards: 0,
+    dueToday: 0,
+    reviewsCompleted: 0,
+    accuracy: 0
+  });
   const [loading, setLoading] = useState(true);
+  const [themeMarker, setThemeMarker] = useState(() => document.documentElement.className);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const chartRef = useRef<Chart<'line', number[], string> | null>(null);
 
   useEffect(() => {
     async function run() {
       setLoading(true);
-      const data = await getReviewHistory();
-      setHistory(data);
+
+      const [reviewHistory, decks] = await Promise.all([getReviewHistory(), getDecks()]);
+      const cardsByDeck = await Promise.all(decks.map(deck => getCardsByDeck(deck.id)));
+      const allCards = cardsByDeck.flat();
+
+      const reviewsCompleted = reviewHistory.length;
+      const correct = reviewHistory.filter(entry => entry.quality >= 4).length;
+      const accuracy = reviewsCompleted > 0 ? Math.round((correct / reviewsCompleted) * 100) : 0;
+      const dueToday = allCards.filter(card => card.reviewState.due <= Date.now()).length;
+
+      setHistory(reviewHistory);
+      setStats({
+        totalCards: allCards.length,
+        dueToday,
+        reviewsCompleted,
+        accuracy
+      });
       setLoading(false);
     }
+
     void run();
   }, []);
 
-  const totalReviews = history.length;
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setThemeMarker(document.documentElement.className);
+    });
 
-  const accuracy = useMemo(() => {
-    if (history.length === 0) return 0;
-    const correct = history.filter(entry => entry.quality >= 4).length;
-    return Math.round((correct / history.length) * 100);
-  }, [history]);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const reviewsByDay = useMemo(() => {
     const windowDays = getLastNDaysWindow(DAYS_WINDOW);
@@ -73,6 +112,11 @@ export default function Analytics() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const accent = getThemeToken('--accent');
+    const accentSoft = getThemeToken('--accent-soft');
+    const textMuted = getThemeToken('--text-muted');
+    const borderSubtle = getThemeToken('--border-subtle');
+
     if (chartRef.current) {
       chartRef.current.destroy();
       chartRef.current = null;
@@ -86,13 +130,15 @@ export default function Analytics() {
           {
             label: 'Reviews',
             data: reviewsByDay.values,
-            borderColor: 'rgb(37, 99, 235)',
-            backgroundColor: 'rgba(37, 99, 235, 0.14)',
+            borderColor: accent,
+            backgroundColor: accentSoft,
             fill: true,
             tension: 0.32,
             borderWidth: 2,
             pointRadius: 3,
-            pointHoverRadius: 4
+            pointHoverRadius: 4,
+            pointBackgroundColor: accent,
+            pointBorderColor: accent
           }
         ]
       },
@@ -103,12 +149,12 @@ export default function Analytics() {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: '#64748b' }
+            ticks: { color: textMuted }
           },
           y: {
             beginAtZero: true,
-            ticks: { precision: 0, color: '#64748b' },
-            grid: { color: 'rgba(148, 163, 184, 0.25)' }
+            ticks: { precision: 0, color: textMuted },
+            grid: { color: borderSubtle }
           }
         }
       }
@@ -120,7 +166,7 @@ export default function Analytics() {
         chartRef.current = null;
       }
     };
-  }, [reviewsByDay]);
+  }, [reviewsByDay, themeMarker]);
 
   if (loading) {
     return <div className="saas-surface p-6 text-sm text-slate-500">Loading analytics...</div>;
@@ -131,33 +177,39 @@ export default function Analytics() {
       <section className="saas-surface p-8 md:p-10">
         <p className="saas-kicker">Insights</p>
         <h1 className="saas-title mt-3">Analytics</h1>
-        <p className="saas-subtitle mt-3 max-w-2xl">Track learning consistency and quality trends at a glance.</p>
+        <p className="saas-subtitle mt-3 max-w-2xl">Track workload, outcomes, and daily study consistency.</p>
       </section>
 
       <section className="saas-grid-main">
         <article className="saas-surface p-6">
-          <p className="text-sm text-slate-500">Total Reviews</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{totalReviews}</p>
-          <p className="mt-1 text-sm text-slate-400">All recorded study evaluations</p>
+          <p className="text-sm text-slate-500">Total Cards</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{stats.totalCards}</p>
+          <p className="mt-1 text-sm text-slate-400">Across all subjects and decks</p>
+        </article>
+
+        <article className="saas-surface p-6">
+          <p className="text-sm text-slate-500">Due Today</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-blue-700">{stats.dueToday}</p>
+          <p className="mt-1 text-sm text-slate-400">Cards ready for immediate review</p>
+        </article>
+
+        <article className="saas-surface p-6">
+          <p className="text-sm text-slate-500">Reviews Completed</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{stats.reviewsCompleted}</p>
+          <p className="mt-1 text-sm text-slate-400">All stored review attempts</p>
         </article>
 
         <article className="saas-surface p-6">
           <p className="text-sm text-slate-500">Accuracy</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight text-blue-700">{accuracy}%</p>
-          <p className="mt-1 text-sm text-slate-400">Grades 4-5 count as correct</p>
-        </article>
-
-        <article className="saas-surface p-6">
-          <p className="text-sm text-slate-500">Window</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Last {DAYS_WINDOW} days</p>
-          <p className="mt-1 text-sm text-slate-400">Rolling activity trend window</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-blue-700">{stats.accuracy}%</p>
+          <p className="mt-1 text-sm text-slate-400">Grades 4 and 5 counted as correct</p>
         </article>
       </section>
 
       <section className="saas-surface p-6 md:p-7">
         <div className="mb-5 flex items-center justify-between gap-2">
           <h2 className="text-xl font-semibold tracking-tight text-slate-900">Reviews Per Day</h2>
-          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{DAYS_WINDOW} day trend</span>
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Last {DAYS_WINDOW} days</span>
         </div>
 
         {history.length === 0 ? (
