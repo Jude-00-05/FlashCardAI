@@ -20,6 +20,13 @@ type AuthContextValue = {
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const TOKEN_KEY = 'flashcard-token';
+const SKIP_AUTH = import.meta.env.VITE_SKIP_AUTH === 'true';
+const DEV_TOKEN = 'skip-auth-token';
+const DEV_USER: AuthUser = {
+  id: '000000000000000000000001',
+  name: 'Local User',
+  email: 'local@flashcard.ai'
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => window.localStorage.getItem(TOKEN_KEY));
@@ -28,6 +35,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function hydrate() {
+      if (SKIP_AUTH) {
+        setToken(DEV_TOKEN);
+        setUser(DEV_USER);
+        setIsLoading(false);
+        return;
+      }
+
       if (!token) {
         setUser(null);
         setIsLoading(false);
@@ -50,6 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   async function login(email: string, password: string): Promise<void> {
+    if (SKIP_AUTH) {
+      setToken(DEV_TOKEN);
+      setUser(DEV_USER);
+      return;
+    }
+
     const response = await api.post<{ token: string; user: AuthUser }>('/auth/login', { email, password });
     const nextToken = response.data.token;
     window.localStorage.setItem(TOKEN_KEY, nextToken);
@@ -58,6 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function register(name: string, email: string, password: string): Promise<void> {
+    if (SKIP_AUTH) {
+      setToken(DEV_TOKEN);
+      setUser(DEV_USER);
+      return;
+    }
+
     const response = await api.post<{ token: string; user: AuthUser }>('/auth/register', {
       name,
       email,
@@ -70,6 +96,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   function logout() {
+    if (SKIP_AUTH) {
+      return;
+    }
+
     window.localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);

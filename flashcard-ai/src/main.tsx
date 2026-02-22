@@ -13,14 +13,16 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import StudyMode from './pages/StudyMode';
 
+const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true';
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <App>
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={skipAuth ? <Navigate to="/dashboard" replace /> : <Login />} />
+            <Route path="/register" element={skipAuth ? <Navigate to="/dashboard" replace /> : <Register />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/study" element={<StudyMode />} />

@@ -1,7 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap');
 
+@font-face {
+  font-family: 'Geist';
+  src: url('https://assets.codepen.io/605876/GeistVF.ttf') format('truetype');
+}
+
 :root {
   color-scheme: light dark;
+  --size: 20px;
 
   --bg-primary: #f4f6fb;
   --bg-secondary: #edf2f8;
@@ -51,16 +57,16 @@
 }
 
 .theme-light {
-  --bg-primary: #f4f6fb;
-  --bg-secondary: #ecf1f7;
-  --surface: #fbfcfe;
-  --surface-elevated: #fefeff;
-  --text-primary: #0f1728;
-  --text-muted: #5f6c81;
-  --accent: #3a63ff;
-  --accent-hover: #2f55ee;
-  --border-subtle: #dbe5f1;
-  --shadow-color: 20 31 51;
+  --bg-primary: #0f131a;
+  --bg-secondary: #131925;
+  --surface: #171f2b;
+  --surface-elevated: #1b2432;
+  --text-primary: #ecf2ff;
+  --text-muted: #b4c2d8;
+  --accent: #84a8ff;
+  --accent-hover: #a3beff;
+  --border-subtle: #2f3b4f;
+  --shadow-color: 6 10 18;
 
   --shadow-sm: 0 8px 24px rgba(var(--shadow-color), 0.06);
   --shadow-md: 0 20px 42px rgba(var(--shadow-color), 0.08);
@@ -148,6 +154,7 @@ h6 {
 
 p {
   margin: 0;
+  line-height: 1.72;
 }
 
 button,
@@ -159,6 +166,18 @@ select {
 
 a {
   color: inherit;
+  text-decoration: none;
+}
+
+.cursor-dot-enabled,
+.cursor-dot-enabled body,
+.cursor-dot-enabled a,
+.cursor-dot-enabled button,
+.cursor-dot-enabled input,
+.cursor-dot-enabled textarea,
+.cursor-dot-enabled select,
+.cursor-dot-enabled label {
+  cursor: none !important;
 }
 
 @keyframes orbOne {
@@ -196,14 +215,150 @@ a {
   }
 }
 
+@keyframes flicker {
+  to {
+    mask-position:
+      50% 50%,
+      0 50%;
+    -webkit-mask-position:
+      50% 50%,
+      0 50%;
+  }
+}
+
+@keyframes rgbPulse {
+  0% {
+    opacity: 0.54;
+    transform: scale(1);
+    filter: saturate(1) hue-rotate(0deg);
+  }
+  50% {
+    opacity: 0.94;
+    transform: scale(1.04);
+    filter: saturate(1.62) hue-rotate(22deg);
+  }
+  100% {
+    opacity: 0.54;
+    transform: scale(1);
+    filter: saturate(1) hue-rotate(0deg);
+  }
+}
+
+@keyframes rippleWave {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(5);
+    opacity: 0;
+  }
+}
+
 .saas-shell {
   position: relative;
   min-height: 100vh;
+  isolation: isolate;
+  background: hsl(0 0% 6%);
+}
+
+.saas-cursor-glow,
+.saas-cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 120;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(-100px, -100px, 0);
+  transition:
+    opacity 140ms ease,
+    scale 120ms ease;
+}
+
+.saas-cursor-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  margin-left: -7px;
+  margin-top: -7px;
+  background: radial-gradient(circle at 30% 30%, #ffffff 0%, #9bf6ff 35%, #62ffce 70%, #3a63ff 100%);
+  box-shadow:
+    0 0 14px rgba(98, 255, 206, 0.75),
+    0 0 30px rgba(58, 99, 255, 0.45);
+}
+
+.saas-cursor-dot.is-clicking {
+  scale: 1;
+}
+
+.saas-cursor-glow {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  margin-left: -21px;
+  margin-top: -21px;
+  background: radial-gradient(circle, rgba(148, 214, 255, 0.28) 0%, rgba(77, 255, 191, 0.06) 65%, transparent 100%);
+  filter: blur(2px);
+  z-index: 119;
+}
+
+.saas-cursor-dot.is-visible,
+.saas-cursor-glow.is-visible {
+  opacity: 1;
+}
+
+.saas-rgb-el {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 180deg at 50% 70%,
+    hsla(0, 0%, 98%, 1) 0deg,
+    #eec32d 72deg,
+    #ec4b4b 144deg,
+    #709ab9 216deg,
+    #4dffbf 288deg,
+    hsla(0, 0%, 98%, 1) 1turn
+  );
+  mask:
+    radial-gradient(circle at 50% 50%, white 2px, transparent 2.5px) 50% 50% / var(--size) var(--size),
+    url('https://assets.codepen.io/605876/noise-mask.png') 256px 50% / 256px 256px;
+  -webkit-mask:
+    radial-gradient(circle at 50% 50%, white 2px, transparent 2.5px) 50% 50% / var(--size) var(--size),
+    url('https://assets.codepen.io/605876/noise-mask.png') 256px 50% / 256px 256px;
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+  animation:
+    flicker 20s linear infinite,
+    rgbPulse 6s ease-in-out infinite;
+}
+
+.saas-rgb-el::before,
+.saas-rgb-el::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+}
+
+.saas-rgb-el::before {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(236, 75, 75, 0.48), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(77, 255, 191, 0.4), transparent 42%),
+    radial-gradient(circle at 55% 84%, rgba(112, 154, 185, 0.43), transparent 45%);
+  filter: blur(54px);
+  animation: orbTwo 14s ease-in-out infinite;
+}
+
+.saas-rgb-el::after {
+  background: radial-gradient(circle at 50% 30%, transparent, hsl(0 0% 4%) 72%);
 }
 
 .saas-orb {
   position: fixed;
-  z-index: 0;
+  z-index: 1;
   border-radius: 999px;
   pointer-events: none;
   filter: blur(68px);
@@ -236,13 +391,17 @@ a {
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-elevated) 78%, transparent);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(11, 14, 19, 0.24);
   backdrop-filter: blur(16px);
 }
 
 .saas-page {
   animation: fadeEnter var(--motion-medium) var(--ease-standard) both;
+}
+
+.saas-page section {
+  line-height: 1.65;
 }
 
 .saas-container {
@@ -256,8 +415,9 @@ a {
 
 .saas-surface {
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(11, 14, 19, 0.22);
+  backdrop-filter: blur(18px);
   box-shadow: var(--shadow-md);
   transition:
     transform var(--motion-fast) var(--ease-standard),
@@ -273,7 +433,7 @@ a {
 
 .theme-dark .saas-surface {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, #1f2a3a) 0%, var(--surface) 100%);
+    linear-gradient(180deg, rgba(16, 20, 28, 0.55) 0%, rgba(15, 19, 26, 0.44) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     var(--shadow-md);
@@ -281,8 +441,9 @@ a {
 
 .saas-surface-soft {
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-soft);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(14, 18, 26, 0.18);
+  backdrop-filter: blur(14px);
 }
 
 .saas-title {
@@ -290,6 +451,7 @@ a {
   line-height: 1.02;
   letter-spacing: -0.04em;
   font-weight: 800;
+  font-family: 'Geist', var(--font-heading);
   color: var(--text-primary);
 }
 
@@ -320,13 +482,13 @@ a {
 
 .saas-pill-nav:hover {
   color: var(--text-primary);
-  background: var(--accent-soft);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .saas-pill-nav-active {
-  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-subtle));
-  color: var(--accent-hover);
-  background: var(--accent-soft);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #e8efff;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .saas-badge {
@@ -335,9 +497,22 @@ a {
   padding: 8px 14px;
   font-size: 0.75rem;
   font-weight: 700;
-  background: var(--accent-soft);
-  color: var(--accent-hover);
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border-subtle));
+  background: rgba(255, 255, 255, 0.12);
+  color: #f0f6ff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.saas-badge-min {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #eaf0ff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .saas-theme-toggle {
@@ -345,8 +520,8 @@ a {
   align-items: center;
   gap: 10px;
   border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-elevated) 90%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(12, 14, 20, 0.26);
   color: var(--text-primary);
   padding: 6px 12px 6px 7px;
   cursor: pointer;
@@ -354,8 +529,8 @@ a {
 }
 
 .saas-theme-toggle:hover {
-  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-subtle));
-  background: var(--surface);
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(16, 20, 28, 0.35);
 }
 
 .saas-theme-toggle-thumb {
@@ -384,40 +559,159 @@ a {
   transition: all var(--motion-fast) var(--ease-standard);
 }
 
+button,
+.saas-btn-primary,
+.saas-btn-secondary,
+.saas-btn-danger,
+.saas-pill-nav {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+button::after,
+.saas-btn-primary::after,
+.saas-btn-secondary::after,
+.saas-btn-danger::after,
+.saas-pill-nav::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) scale(0.2);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+button:active::after,
+.saas-btn-primary:active::after,
+.saas-btn-secondary:active::after,
+.saas-btn-danger:active::after,
+.saas-pill-nav:active::after {
+  opacity: 1;
+  animation: rippleWave 620ms ease-out;
+}
+
+.saas-option-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.saas-option-tile {
+  position: relative;
+  min-height: 190px;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(13, 16, 23, 0.28);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 28px rgba(6, 10, 18, 0.34);
+  padding: 1.35rem;
+  overflow: hidden;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.saas-option-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.saas-option-tile:hover {
+  transform: perspective(900px) rotateX(7deg) rotateY(-6deg) translateY(-3px);
+  box-shadow: 0 24px 42px rgba(8, 12, 21, 0.42);
+  border-color: rgba(255, 255, 255, 0.42);
+}
+
+.saas-option-tile:active {
+  transform: perspective(900px) rotateX(2deg) rotateY(-2deg) scale(0.985);
+}
+
+.saas-option-tile:active::after {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 62%);
+  animation: rippleWave 680ms ease-out;
+  pointer-events: none;
+}
+
 .saas-btn-primary {
-  border: 1px solid transparent;
-  background: var(--accent);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(58, 99, 255, 0.28);
   color: #f6f8ff;
+  backdrop-filter: blur(12px);
 }
 
 .saas-btn-primary:hover {
-  background: var(--accent-hover);
+  background: rgba(58, 99, 255, 0.42);
   transform: scale(1.02);
 }
 
 .saas-btn-secondary {
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(12, 14, 20, 0.22);
   color: var(--text-primary);
+  backdrop-filter: blur(12px);
 }
 
 .saas-btn-secondary:hover {
-  border-color: color-mix(in srgb, var(--accent) 20%, var(--border-subtle));
-  background: var(--accent-soft);
+  border-color: rgba(255, 255, 255, 0.36);
+  background: rgba(16, 20, 28, 0.34);
 }
 
 .saas-btn-danger {
-  border: 1px solid var(--danger-border);
+  border: 1px solid rgba(255, 166, 183, 0.45);
   border-radius: var(--radius-md);
-  background: var(--danger-soft);
-  color: var(--danger);
+  background: rgba(203, 75, 95, 0.2);
+  color: #ffd8df;
   font-weight: 600;
+  backdrop-filter: blur(12px);
   transition: all var(--motion-fast) var(--ease-standard);
 }
 
+.saas-btn-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #edf3ff;
+  font-weight: 500;
+  font-size: 0.74rem;
+  line-height: 1;
+  padding: 8px 12px;
+  transition: all var(--motion-fast) var(--ease-standard);
+}
+
+.saas-btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.saas-btn-ghost-danger {
+  border-color: rgba(255, 174, 191, 0.34);
+  color: #ffdce4;
+  background: rgba(203, 75, 95, 0.14);
+}
+
+.saas-btn-ghost-danger:hover {
+  border-color: rgba(255, 174, 191, 0.5);
+  background: rgba(203, 75, 95, 0.24);
+}
+
 .saas-btn-danger:hover {
-  background: color-mix(in srgb, var(--danger-soft) 84%, var(--danger));
-  color: var(--danger-hover);
+  background: rgba(203, 75, 95, 0.34);
+  color: #ffe8ed;
 }
 
 .saas-btn-primary:focus-visible,
@@ -433,26 +727,28 @@ a {
 .saas-input {
   width: 100%;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-elevated);
-  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(10, 13, 18, 0.24);
+  color: #f5f7ff;
+  backdrop-filter: blur(10px);
   transition: all var(--motion-fast) var(--ease-standard);
 }
 
 .saas-input::placeholder {
-  color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+  color: rgba(225, 232, 245, 0.6);
 }
 
 .saas-input:focus {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
+  border-color: rgba(155, 183, 255, 0.8);
   box-shadow: 0 0 0 4px var(--ring);
   outline: none;
 }
 
 .saas-upload {
-  border: 1.5px dashed color-mix(in srgb, var(--border-subtle) 80%, var(--accent));
+  border: 1.5px dashed rgba(255, 255, 255, 0.28);
   border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  background: rgba(12, 15, 22, 0.2);
+  backdrop-filter: blur(10px);
 }
 
 .saas-grid-main {
@@ -483,8 +779,9 @@ a {
   position: absolute;
   inset: 0;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(170deg, var(--surface-elevated), var(--surface-soft));
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: linear-gradient(170deg, rgba(16, 20, 29, 0.58), rgba(14, 18, 26, 0.38));
+  backdrop-filter: blur(16px);
   box-shadow: var(--shadow-md);
   padding: var(--space-8);
   backface-visibility: hidden;
@@ -545,12 +842,12 @@ a {
 }
 
 .bg-blue-50 {
-  background-color: var(--accent-soft) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .bg-slate-100,
 .bg-slate-50\/50 {
-  background-color: var(--surface-muted) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .bg-blue-600 {
@@ -592,5 +889,10 @@ a {
 
   .saas-flashcard {
     min-height: 340px;
+  }
+
+  .saas-cursor-dot,
+  .saas-cursor-glow {
+    display: none;
   }
 }

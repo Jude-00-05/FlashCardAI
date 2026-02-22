@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 
@@ -23,6 +23,8 @@ export default function App({ children }: PropsWithChildren) {
   const isAuthRoute = location.pathname === '/login' || location.pathname === '/register';
   const [savedTheme, setSavedTheme] = useState<Theme | null>(() => getSavedTheme());
   const [systemTheme, setSystemTheme] = useState<Theme>(() => getSystemTheme());
+  const cursorDotRef = useRef<HTMLDivElement | null>(null);
+  const cursorGlowRef = useRef<HTMLDivElement | null>(null);
 
   const theme = useMemo<Theme>(() => savedTheme ?? systemTheme, [savedTheme, systemTheme]);
 
@@ -59,68 +61,71 @@ export default function App({ children }: PropsWithChildren) {
     });
   }
 
+  useEffect(() => {
+    const finePointer = window.matchMedia('(pointer: fine)').matches;
+    if (!finePointer) return;
+
+    const dot = cursorDotRef.current;
+    const glow = cursorGlowRef.current;
+    if (!dot || !glow) return;
+
+    let raf = 0;
+    let targetX = window.innerWidth / 2;
+    let targetY = window.innerHeight / 2;
+    let glowX = targetX;
+    let glowY = targetY;
+
+    document.documentElement.classList.add('cursor-dot-enabled');
+
+    const animate = () => {
+      glowX += (targetX - glowX) * 0.18;
+      glowY += (targetY - glowY) * 0.18;
+      dot.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
+      glow.style.transform = `translate3d(${glowX}px, ${glowY}px, 0)`;
+      raf = window.requestAnimationFrame(animate);
+    };
+
+    const onMove = (event: MouseEvent) => {
+      targetX = event.clientX;
+      targetY = event.clientY;
+      dot.classList.add('is-visible');
+      glow.classList.add('is-visible');
+    };
+
+    window.addEventListener('mousemove', onMove);
+    raf = window.requestAnimationFrame(animate);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('mousemove', onMove);
+      document.documentElement.classList.remove('cursor-dot-enabled');
+    };
+  }, []);
+
   if (isAuthRoute) {
-    return <div className="saas-shell">{children}</div>;
+    return (
+      <div className="saas-shell">
+        <div ref={cursorGlowRef} className="saas-cursor-glow" aria-hidden="true" />
+        <div ref={cursorDotRef} className="saas-cursor-dot" aria-hidden="true" />
+        {children}
+      </div>
+    );
   }
 
   return (
     <div className="saas-shell">
+      <div ref={cursorGlowRef} className="saas-cursor-glow" aria-hidden="true" />
+      <div ref={cursorDotRef} className="saas-cursor-dot" aria-hidden="true" />
+      <div className="saas-rgb-el" aria-hidden="true" />
       <div className="saas-orb saas-orb-a" />
       <div className="saas-orb saas-orb-b" />
 
       <Navbar theme={theme} onToggleTheme={handleThemeToggle} />
 
-      <section className="saas-container relative z-10 pt-8">
-        <div className="saas-surface p-6 sm:p-8">
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-center">
-            <div>
-              <p className="saas-kicker">Learning Platform</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Build. Review. Retain.</h2>
-              <p className="mt-4 text-sm text-slate-500 sm:text-base">
-                Structured flashcard workflows with deterministic generation, spaced repetition, and clean progress
-                tracking.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <article className="saas-surface-soft rounded-xl p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Modes</p>
-                <p className="mt-2 text-xl font-semibold">Create + Study</p>
-              </article>
-              <article className="saas-surface-soft rounded-xl p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Engine</p>
-                <p className="mt-2 text-xl font-semibold">SM-2 Ready</p>
-              </article>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="saas-container grid gap-10 py-10 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="saas-container py-10">
         <main key={location.pathname} className="saas-page space-y-10">
           {children}
         </main>
-
-        <aside className="hidden xl:block">
-          <div className="sticky top-28 space-y-4">
-            <div className="saas-surface p-6">
-              <p className="saas-kicker">Focus</p>
-              <h3 className="mt-3 text-lg font-semibold">Study Rhythm</h3>
-              <p className="mt-3 text-sm text-slate-500">
-                Daily short sessions outperform cramming. Keep a steady due-card routine.
-              </p>
-            </div>
-
-            <div className="saas-surface-soft rounded-2xl p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Workflow</p>
-              <ol className="mt-3 space-y-2 text-sm text-slate-500">
-                <li>1. Import or create cards</li>
-                <li>2. Review due queue</li>
-                <li>3. Track performance</li>
-              </ol>
-            </div>
-          </div>
-        </aside>
       </div>
     </div>
   );

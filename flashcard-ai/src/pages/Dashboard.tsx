@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  createDeck,
   createSubject,
   deleteSubjectCascade,
   exportWorkspaceAsJson,
@@ -38,7 +37,6 @@ export default function Dashboard() {
   });
 
   const [newSubjectName, setNewSubjectName] = useState('');
-  const [newSubjectDescription, setNewSubjectDescription] = useState('');
   const [subjectStatus, setSubjectStatus] = useState('');
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [editingSubjectName, setEditingSubjectName] = useState('');
@@ -50,19 +48,7 @@ export default function Dashboard() {
   const [isImportingBackup, setIsImportingBackup] = useState(false);
 
   const loadDashboard = useCallback(async () => {
-    let subs = await getSubjects();
-
-    if (subs.length === 0) {
-      const s1 = await createSubject('Computer Science', 'DSA, OS, DBMS');
-      const s2 = await createSubject('Maths', 'Linear Algebra, Calculus');
-
-      await createDeck(s1.id, 'Data Structures');
-      await createDeck(s1.id, 'Operating Systems');
-      await createDeck(s2.id, 'Linear Algebra');
-
-      subs = await getSubjects();
-    }
-
+    const subs = await getSubjects();
     setSubjects(subs);
 
     const pairs = await Promise.all(subs.map(async subject => [subject.id, await getDecksBySubject(subject.id)] as const));
@@ -92,7 +78,6 @@ export default function Dashboard() {
 
   async function handleCreateSubject() {
     const name = newSubjectName.trim();
-    const description = newSubjectDescription.trim();
 
     if (!name) {
       setSubjectStatus('Subject name is required.');
@@ -105,9 +90,8 @@ export default function Dashboard() {
       return;
     }
 
-    await createSubject(name, description);
+    await createSubject(name);
     setNewSubjectName('');
-    setNewSubjectDescription('');
     setSubjectStatus('Subject created.');
     await loadDashboard();
   }
@@ -213,39 +197,32 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="space-y-10">
+      <div className="space-y-12">
         <section className="saas-surface p-8 md:p-10">
           <p className="saas-kicker">Overview</p>
-          <h1 className="saas-title mt-3">Productive learning, designed for speed</h1>
-          <p className="saas-subtitle mt-4 max-w-3xl">
-            Manage your decks, track what is due, and jump straight into review sessions with a clean structured
-            workflow.
-          </p>
+          <h1 className="saas-title mt-3">Productive Learning</h1>
+          <p className="mt-2 text-sm text-slate-500">Create, review, improve.</p>
         </section>
 
-        <section className="flex gap-4 overflow-x-auto pb-1">
-          <Link to="/create" className="saas-surface min-w-[250px] p-6">
+        <section className="saas-option-grid">
+          <Link to="/create" className="saas-option-tile">
             <p className="saas-kicker">Primary Option</p>
             <h2 className="mt-3 text-xl font-semibold">Create Cards</h2>
-            <p className="mt-3 text-sm text-slate-500">Import content and produce flashcards quickly.</p>
           </Link>
 
-          <Link to="/study" className="saas-surface min-w-[250px] p-6">
+          <Link to="/study" className="saas-option-tile">
             <p className="saas-kicker">Primary Option</p>
             <h2 className="mt-3 text-xl font-semibold">Study Session</h2>
-            <p className="mt-3 text-sm text-slate-500">Review due cards with keyboard-friendly controls.</p>
           </Link>
 
-          <Link to="/analytics" className="saas-surface min-w-[250px] p-6">
+          <Link to="/analytics" className="saas-option-tile">
             <p className="saas-kicker">Primary Option</p>
             <h2 className="mt-3 text-xl font-semibold">Analytics</h2>
-            <p className="mt-3 text-sm text-slate-500">Monitor retention and review quality over time.</p>
           </Link>
 
-          <a href="#deck-library" className="saas-surface min-w-[250px] p-6">
+          <a href="#deck-library" className="saas-option-tile">
             <p className="saas-kicker">Primary Option</p>
             <h2 className="mt-3 text-xl font-semibold">Deck Library</h2>
-            <p className="mt-3 text-sm text-slate-500">Browse subjects and open a deck instantly.</p>
           </a>
         </section>
 
@@ -259,13 +236,11 @@ export default function Dashboard() {
           <article className="saas-surface p-7">
             <p className="text-sm text-slate-500">Due Today</p>
             <p className="mt-3 text-3xl font-semibold text-blue-700">{stats.dueToday}</p>
-            <p className="mt-2 text-sm text-slate-400">Cards waiting for review</p>
           </article>
 
           <article className="saas-surface p-7">
             <p className="text-sm text-slate-500">Accuracy</p>
             <p className="mt-3 text-3xl font-semibold text-blue-700">{stats.accuracy}%</p>
-            <p className="mt-2 text-sm text-slate-400">From review history</p>
           </article>
         </section>
 
@@ -277,20 +252,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-[1.2fr_1fr_auto]">
+          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <input
               type="text"
               value={newSubjectName}
               onChange={event => setNewSubjectName(event.target.value)}
               className="saas-input p-3"
               placeholder="New subject name"
-            />
-            <input
-              type="text"
-              value={newSubjectDescription}
-              onChange={event => setNewSubjectDescription(event.target.value)}
-              className="saas-input p-3"
-              placeholder="Optional description"
             />
             <button onClick={() => void handleCreateSubject()} className="saas-btn-primary px-4 py-3 text-sm">
               Add Subject
@@ -301,20 +269,17 @@ export default function Dashboard() {
         </section>
 
         <section className="saas-surface p-6 md:p-7">
-          <div className="mb-5">
+          <div className="mb-6 space-y-2">
             <p className="saas-kicker">Settings</p>
             <h2 className="mt-2 text-2xl font-semibold">Backup and Restore</h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Export or import full workspace data (subjects, decks, and cards) as JSON.
-            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => void handleExportWorkspace()} className="saas-btn-secondary px-4 py-2 text-sm">
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => void handleExportWorkspace()} className="saas-btn-secondary px-5 py-2.5 text-sm">
               Export Workspace JSON
             </button>
 
-            <label className="saas-btn-primary cursor-pointer px-4 py-2 text-sm">
+            <label className="saas-btn-primary cursor-pointer px-5 py-2.5 text-sm">
               Import Workspace JSON
               <input
                 type="file"
@@ -340,8 +305,8 @@ export default function Dashboard() {
             const isEditing = editingSubjectId === subject.id;
 
             return (
-              <article key={subject.id} className="saas-surface p-6">
-                <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+              <article key={subject.id} className="saas-surface space-y-6 p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     {isEditing ? (
                       <div className="flex flex-wrap items-center gap-2">
@@ -370,13 +335,12 @@ export default function Dashboard() {
                     ) : (
                       <>
                         <h2 className="truncate text-2xl font-semibold tracking-tight">{subject.name}</h2>
-                        <p className="mt-2 text-sm text-slate-500">{subject.description || 'No description yet.'}</p>
                       </>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                    <span className="saas-badge-min">
                       {decksBySubject[subject.id]?.length ?? 0} deck(s)
                     </span>
                     {!isEditing && (
@@ -387,13 +351,13 @@ export default function Dashboard() {
                             setEditingSubjectName(subject.name);
                             setSubjectStatus('');
                           }}
-                          className="saas-btn-secondary px-3 py-1.5 text-xs"
+                          className="saas-btn-ghost"
                         >
                           Rename
                         </button>
                         <button
                           onClick={() => void openDeleteModal(subject)}
-                          className="saas-btn-danger px-3 py-1.5 text-xs"
+                          className="saas-btn-ghost saas-btn-ghost-danger"
                         >
                           Delete
                         </button>
@@ -402,16 +366,16 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {decksBySubject[subject.id]?.map(deck => (
-                    <div key={deck.id} className="saas-surface-soft p-5">
+                    <div key={deck.id} className="saas-surface-soft space-y-4 p-5">
                       <p className="text-lg font-semibold">{deck.name}</p>
-                      <p className="mt-2 text-sm text-slate-500">Open deck and manage cards</p>
-                      <div className="mt-4 flex gap-2">
-                        <Link to={`/deck/${deck.id}`} className="saas-btn-secondary px-3 py-1.5 text-xs">
+                      <p className="text-sm text-slate-500">Open deck and manage cards</p>
+                      <div className="flex gap-2">
+                        <Link to={`/deck/${deck.id}`} className="saas-btn-ghost">
                           Manage
                         </Link>
-                        <Link to={`/study/${deck.id}`} className="saas-btn-primary rounded-full px-3 py-1.5 text-xs">
+                        <Link to={`/study/${deck.id}`} className="saas-btn-ghost">
                           Study
                         </Link>
                       </div>

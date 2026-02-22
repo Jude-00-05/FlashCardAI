@@ -1,69 +1,111 @@
 import type { Card, Deck, DeckExportPayload, ReviewHistoryEntry, ReviewState, Subject, WorkspaceBackupPayload } from '../types/models';
-import { api } from './api';
 
-type ApiEntity = {
-  _id: string;
+type WorkspaceState = {
+  subjects: Subject[];
+  decks: Deck[];
+  cards: Card[];
+  reviews: ReviewHistoryEntry[];
 };
 
-type ApiSubject = ApiEntity & {
-  name: string;
-};
+const STORAGE_KEY = 'flashcard-ai.workspace.v1';
 
-type ApiDeck = ApiEntity & {
-  subjectId: string;
-  name: string;
-  createdAt: number;
-};
+function createId(prefix: string): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
-type ApiCard = ApiEntity & {
-  deckId: string;
-  subjectId: string;
-  front: string;
-  back: string;
-  reviewState: ReviewState;
-};
-
-type ApiReviewHistory = ApiEntity & {
-  cardId: string;
-  deckId: string;
-  quality: 1 | 2 | 3 | 4 | 5;
-  reviewedAt: number;
-};
-
-function mapSubject(item: ApiSubject): Subject {
+function defaultReviewState(): ReviewState {
   return {
-    id: item._id,
-    name: item.name
+    interval: 1,
+    repetition: 0,
+    easeFactor: 2.5,
+    due: Date.now()
   };
 }
 
-function mapDeck(item: ApiDeck): Deck {
+function seededWorkspace(): WorkspaceState {
+  const now = Date.now();
+
+  const subjectOneId = createId('sub');
+  const subjectTwoId = createId('sub');
+
+  const deckOneId = createId('deck');
+  const deckTwoId = createId('deck');
+  const deckThreeId = createId('deck');
+
   return {
-    id: item._id,
-    subjectId: item.subjectId,
-    name: item.name,
-    createdAt: item.createdAt
+    subjects: [
+      { id: subjectOneId, name: 'Computer Science' },
+      { id: subjectTwoId, name: 'Mathematics' }
+    ],
+    decks: [
+      { id: deckOneId, subjectId: subjectOneId, name: 'Data Structures', createdAt: now },
+      { id: deckTwoId, subjectId: subjectOneId, name: 'Operating Systems', createdAt: now },
+      { id: deckThreeId, subjectId: subjectTwoId, name: 'Linear Algebra', createdAt: now }
+    ],
+    cards: [
+      {
+        id: createId('card'),
+        deckId: deckOneId,
+        front: 'What is the time complexity of binary search?',
+        back: 'O(log n)',
+        reviewState: defaultReviewState()
+      },
+      {
+        id: createId('card'),
+        deckId: deckOneId,
+        front: 'Which data structure supports FIFO order?',
+        back: 'Queue',
+        reviewState: defaultReviewState()
+      },
+      {
+        id: createId('card'),
+        deckId: deckTwoId,
+        front: 'What does virtual memory primarily provide?',
+        back: 'An abstraction of larger memory space using disk-backed paging.',
+        reviewState: defaultReviewState()
+      },
+      {
+        id: createId('card'),
+        deckId: deckThreeId,
+        front: 'What is the determinant used for?',
+        back: 'It indicates scaling factor and whether a square matrix is invertible.',
+        reviewState: defaultReviewState()
+      }
+    ],
+    reviews: []
   };
 }
 
-function mapCard(item: ApiCard): Card {
-  return {
-    id: item._id,
-    deckId: item.deckId,
-    front: item.front,
-    back: item.back,
-    reviewState: item.reviewState
-  };
+function readWorkspace(): WorkspaceState {
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    const seed = seededWorkspace();
+    writeWorkspace(seed);
+    return seed;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as WorkspaceState;
+    if (!parsed || !Array.isArray(parsed.subjects) || !Array.isArray(parsed.decks) || !Array.isArray(parsed.cards) || !Array.isArray(parsed.reviews)) {
+      throw new Error('Invalid workspace');
+    }
+    return parsed;
+  } catch {
+    const seed = seededWorkspace();
+    writeWorkspace(seed);
+    return seed;
+  }
 }
 
-function mapReview(item: ApiReviewHistory): ReviewHistoryEntry {
-  return {
-    id: item._id,
-    cardId: item.cardId,
-    deckId: item.deckId,
-    quality: item.quality,
-    reviewedAt: item.reviewedAt
-  };
+function writeWorkspace(workspace: WorkspaceState): void {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
+}
+
+function normalizeName(value: string): string {
+  return value.trim().toLowerCase();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -124,86 +166,98 @@ function parseCsvLine(line: string): string[] {
   return fields;
 }
 
-function normalizeName(value: string): string {
-  return value.trim().toLowerCase();
-}
-
 /* ---------- SUBJECTS ---------- */
 
 export async function getSubjects(): Promise<Subject[]> {
-  const response = await api.get<ApiSubject[]>('/subjects');
-  return response.data.map(mapSubject);
+  return readWorkspace().subjects;
 }
 
 export async function createSubject(name: string, _description = ''): Promise<Subject> {
-  const response = await api.post<ApiSubject>('/subjects', { name });
-  return mapSubject(response.data);
+  const workspace = readWorkspace();
+  const subject: Subject = {
+    id: createId('sub'),
+    name: name.trim()
+  };
+  workspace.subjects.push(subject);
+  writeWorkspace(workspace);
+  return subject;
 }
 
 export async function renameSubject(subjectId: string, name: string): Promise<Subject | null> {
-  try {
-    const response = await api.put<ApiSubject>(`/subjects/${subjectId}`, { name });
-    return mapSubject(response.data);
-  } catch {
-    return null;
-  }
+  const workspace = readWorkspace();
+  const subject = workspace.subjects.find(item => item.id === subjectId);
+  if (!subject) return null;
+  subject.name = name.trim();
+  writeWorkspace(workspace);
+  return subject;
 }
 
 export async function deleteSubjectCascade(subjectId: string): Promise<boolean> {
-  try {
-    await api.delete(`/subjects/${subjectId}`);
-    return true;
-  } catch {
-    return false;
-  }
+  const workspace = readWorkspace();
+  const existing = workspace.subjects.some(item => item.id === subjectId);
+  if (!existing) return false;
+
+  const removedDeckIds = new Set(workspace.decks.filter(deck => deck.subjectId === subjectId).map(deck => deck.id));
+  workspace.subjects = workspace.subjects.filter(subject => subject.id !== subjectId);
+  workspace.decks = workspace.decks.filter(deck => deck.subjectId !== subjectId);
+  workspace.cards = workspace.cards.filter(card => !removedDeckIds.has(card.deckId));
+  workspace.reviews = workspace.reviews.filter(review => !removedDeckIds.has(review.deckId));
+  writeWorkspace(workspace);
+  return true;
 }
 
 /* ---------- DECKS ---------- */
 
 export async function getDecksBySubject(subjectId: string): Promise<Deck[]> {
-  const response = await api.get<ApiDeck[]>(`/decks/${subjectId}`);
-  return response.data.map(mapDeck);
+  return readWorkspace().decks.filter(deck => deck.subjectId === subjectId);
 }
 
 export async function getDecks(): Promise<Deck[]> {
-  const subjects = await getSubjects();
-  const grouped = await Promise.all(subjects.map(subject => getDecksBySubject(subject.id)));
-  return grouped.flat();
+  return readWorkspace().decks;
 }
 
 export async function getDeckById(deckId: string): Promise<Deck | null> {
-  const decks = await getDecks();
-  return decks.find(deck => deck.id === deckId) ?? null;
+  return readWorkspace().decks.find(deck => deck.id === deckId) ?? null;
 }
 
 export async function createDeck(subjectId: string, name: string): Promise<Deck> {
-  const response = await api.post<ApiDeck>('/decks', { subjectId, name });
-  return mapDeck(response.data);
+  const workspace = readWorkspace();
+  const deck: Deck = {
+    id: createId('deck'),
+    subjectId,
+    name: name.trim(),
+    createdAt: Date.now()
+  };
+  workspace.decks.push(deck);
+  writeWorkspace(workspace);
+  return deck;
 }
 
 export async function renameDeck(deckId: string, name: string): Promise<Deck | null> {
-  try {
-    const response = await api.put<ApiDeck>(`/decks/${deckId}`, { name });
-    return mapDeck(response.data);
-  } catch {
-    return null;
-  }
+  const workspace = readWorkspace();
+  const deck = workspace.decks.find(item => item.id === deckId);
+  if (!deck) return null;
+  deck.name = name.trim();
+  writeWorkspace(workspace);
+  return deck;
 }
 
 export async function deleteDeck(deckId: string): Promise<boolean> {
-  try {
-    await api.delete(`/decks/${deckId}`);
-    return true;
-  } catch {
-    return false;
-  }
+  const workspace = readWorkspace();
+  const exists = workspace.decks.some(deck => deck.id === deckId);
+  if (!exists) return false;
+
+  workspace.decks = workspace.decks.filter(deck => deck.id !== deckId);
+  workspace.cards = workspace.cards.filter(card => card.deckId !== deckId);
+  workspace.reviews = workspace.reviews.filter(review => review.deckId !== deckId);
+  writeWorkspace(workspace);
+  return true;
 }
 
 /* ---------- CARDS ---------- */
 
 export async function getCardsByDeck(deckId: string): Promise<Card[]> {
-  const response = await api.get<ApiCard[]>(`/cards/${deckId}`);
-  return response.data.map(mapCard);
+  return readWorkspace().cards.filter(card => card.deckId === deckId);
 }
 
 export async function createCard(
@@ -212,44 +266,48 @@ export async function createCard(
   back: string,
   reviewState?: ReviewState
 ): Promise<Card> {
-  const response = await api.post<ApiCard>('/cards', {
+  const workspace = readWorkspace();
+  const card: Card = {
+    id: createId('card'),
     deckId,
-    front,
-    back,
-    reviewState
-  });
-
-  return mapCard(response.data);
+    front: front.trim(),
+    back: back.trim(),
+    reviewState: reviewState ?? defaultReviewState()
+  };
+  workspace.cards.push(card);
+  writeWorkspace(workspace);
+  return card;
 }
 
 export async function updateCard(cardId: string, front: string, back: string): Promise<Card | null> {
-  try {
-    const response = await api.put<ApiCard>(`/cards/${cardId}`, { front, back });
-    return mapCard(response.data);
-  } catch {
-    return null;
-  }
+  const workspace = readWorkspace();
+  const card = workspace.cards.find(item => item.id === cardId);
+  if (!card) return null;
+  card.front = front.trim();
+  card.back = back.trim();
+  writeWorkspace(workspace);
+  return card;
 }
 
 export async function deleteCard(cardId: string): Promise<boolean> {
-  try {
-    await api.delete(`/cards/${cardId}`);
-    return true;
-  } catch {
-    return false;
-  }
+  const workspace = readWorkspace();
+  const exists = workspace.cards.some(card => card.id === cardId);
+  if (!exists) return false;
+  workspace.cards = workspace.cards.filter(card => card.id !== cardId);
+  workspace.reviews = workspace.reviews.filter(review => review.cardId !== cardId);
+  writeWorkspace(workspace);
+  return true;
 }
 
 export async function getDueCards(): Promise<Card[]> {
-  const response = await api.get<ApiCard[]>('/cards/due');
-  return response.data.map(mapCard);
+  const now = Date.now();
+  return readWorkspace().cards.filter(card => card.reviewState.due <= now);
 }
 
 /* ---------- REVIEW HISTORY ---------- */
 
 export async function getReviewHistory(): Promise<ReviewHistoryEntry[]> {
-  const response = await api.get<ApiReviewHistory[]>('/reviews');
-  return response.data.map(mapReview);
+  return readWorkspace().reviews;
 }
 
 export async function saveReview(
@@ -257,13 +315,24 @@ export async function saveReview(
   reviewState: ReviewState,
   quality?: 1 | 2 | 3 | 4 | 5
 ): Promise<void> {
-  await api.put(`/cards/${cardId}`, {
-    reviewState,
-    quality
-  });
+  const workspace = readWorkspace();
+  const card = workspace.cards.find(item => item.id === cardId);
+  if (!card) return;
+
+  card.reviewState = reviewState;
+  if (quality) {
+    workspace.reviews.push({
+      id: createId('review'),
+      cardId: card.id,
+      deckId: card.deckId,
+      quality,
+      reviewedAt: Date.now()
+    });
+  }
+  writeWorkspace(workspace);
 }
 
-/* ---------- IMPORT / EXPORT (CLIENT-SIDE UTILITIES) ---------- */
+/* ---------- IMPORT / EXPORT ---------- */
 
 export async function exportDeckAsJson(deckId: string): Promise<string | null> {
   const deck = await getDeckById(deckId);
@@ -273,7 +342,6 @@ export async function exportDeckAsJson(deckId: string): Promise<string | null> {
   if (!subject) return null;
 
   const cards = await getCardsByDeck(deckId);
-
   const payload: DeckExportPayload = {
     version: 1,
     exportedAt: Date.now(),
@@ -450,19 +518,14 @@ export async function importDeckFromCsv(
 }
 
 export async function exportWorkspaceAsJson(): Promise<string> {
-  const subjects = await getSubjects();
-  const decks = await getDecks();
-  const cardsByDeck = await Promise.all(decks.map(deck => getCardsByDeck(deck.id)));
-  const cards = cardsByDeck.flat();
-
+  const workspace = readWorkspace();
   const payload: WorkspaceBackupPayload = {
     version: 1,
     exportedAt: Date.now(),
-    subjects,
-    decks,
-    cards
+    subjects: workspace.subjects,
+    decks: workspace.decks,
+    cards: workspace.cards
   };
-
   return JSON.stringify(payload, null, 2);
 }
 
@@ -513,36 +576,17 @@ export async function importWorkspaceFromJson(jsonText: string): Promise<{ subje
     if (!isValidReviewState(item.reviewState)) throw new Error('Card has invalid reviewState.');
   }
 
-  const existingSubjects = await getSubjects();
-  for (const subject of existingSubjects) {
-    await deleteSubjectCascade(subject.id);
-  }
-
-  const subjectIdMap = new Map<string, string>();
-  for (const item of parsedSubjects) {
-    const created = await createSubject(String((item as Record<string, unknown>).name));
-    subjectIdMap.set(String((item as Record<string, unknown>).id), created.id);
-  }
-
-  const deckIdMap = new Map<string, string>();
-  for (const item of parsedDecks) {
-    const record = item as Record<string, unknown>;
-    const newSubjectId = subjectIdMap.get(String(record.subjectId));
-    if (!newSubjectId) throw new Error('Deck subject mapping failed during import.');
-    const created = await createDeck(newSubjectId, String(record.name));
-    deckIdMap.set(String(record.id), created.id);
-  }
-
-  for (const item of parsedCards) {
-    const record = item as Record<string, unknown>;
-    const newDeckId = deckIdMap.get(String(record.deckId));
-    if (!newDeckId) throw new Error('Card deck mapping failed during import.');
-    await createCard(newDeckId, String(record.front), String(record.back), record.reviewState as ReviewState);
-  }
+  const workspace: WorkspaceState = {
+    subjects: parsedSubjects as Subject[],
+    decks: parsedDecks as Deck[],
+    cards: parsedCards as Card[],
+    reviews: []
+  };
+  writeWorkspace(workspace);
 
   return {
-    subjects: parsedSubjects.length,
-    decks: parsedDecks.length,
-    cards: parsedCards.length
+    subjects: workspace.subjects.length,
+    decks: workspace.decks.length,
+    cards: workspace.cards.length
   };
 }

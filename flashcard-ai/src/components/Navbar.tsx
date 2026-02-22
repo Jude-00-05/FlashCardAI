@@ -1,17 +1,10 @@
-import { Link, NavLink } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 type NavbarProps = {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 };
-
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/create', label: 'Create / Import' },
-  { to: '/study', label: 'Study' },
-  { to: '/analytics', label: 'Analytics' }
-];
 
 export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
   const { user, logout } = useAuth();
@@ -20,7 +13,7 @@ export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
     <header className="saas-nav">
       <div className="saas-container py-4">
         <div className="flex items-center justify-between gap-4">
-          <Link to="/dashboard" className="group inline-flex items-center gap-3">
+          <Link to="/dashboard" className="group inline-flex items-center gap-3 no-underline">
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/70 text-sm font-bold text-blue-700 transition-all group-hover:scale-[1.02] dark:border-slate-700 dark:bg-slate-800/60">
               FB
             </span>
@@ -45,17 +38,6 @@ export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
           </div>
         </div>
 
-        <nav className="mt-4 flex items-center gap-2 overflow-x-auto pb-1">
-          {navItems.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `saas-pill-nav ${isActive ? 'saas-pill-nav-active' : ''}`}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
       </div>
     </header>
   );

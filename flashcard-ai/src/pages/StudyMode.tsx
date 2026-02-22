@@ -16,12 +16,12 @@ const INITIAL_GRADE_COUNTS: GradeCounts = {
   5: 0
 };
 
-const GRADE_OPTIONS: Array<{ value: Grade; label: string; description: string }> = [
-  { value: 1, label: '1', description: 'Forgot completely' },
-  { value: 2, label: '2', description: 'Hard recall' },
-  { value: 3, label: '3', description: 'Partial recall' },
-  { value: 4, label: '4', description: 'Good recall' },
-  { value: 5, label: '5', description: 'Perfect recall' }
+const GRADE_OPTIONS: Array<{ value: Grade; label: string }> = [
+  { value: 1, label: '1' },
+  { value: 2, label: '2' },
+  { value: 3, label: '3' },
+  { value: 4, label: '4' },
+  { value: 5, label: '5' }
 ];
 
 function shuffleCards(cards: Card[]): Card[] {
@@ -289,7 +289,6 @@ export default function StudyMode() {
                 disabled={isTransitioning}
               >
                 <span className="block font-semibold">{option.label}</span>
-                <span className="mt-0.5 block text-[11px] font-medium opacity-90">{option.description}</span>
               </button>
             ))}
           </div>

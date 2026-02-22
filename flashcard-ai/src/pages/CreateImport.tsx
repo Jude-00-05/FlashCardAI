@@ -32,6 +32,7 @@ export default function CreateImport() {
 
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
+  const [useCloudAI, setUseCloudAI] = useState(false);
   const [status, setStatus] = useState('');
   const [generated, setGenerated] = useState<GeneratedCard[]>([]);
   const [isImportingJson, setIsImportingJson] = useState(false);
@@ -183,9 +184,15 @@ export default function CreateImport() {
     }
 
     setStatus('Generating flashcards...');
-    const cards = await generateCardsFromText(back, 8);
-    setGenerated(cards);
-    setStatus(`Generated ${cards.length} cards.`);
+    try {
+      const cards = await generateCardsFromText(back, 8, useCloudAI);
+      setGenerated(cards);
+      setStatus(`Generated ${cards.length} cards${useCloudAI ? ' (Groq)' : ' (deterministic)'}.`);
+    } catch (error) {
+      setGenerated([]);
+      const message = error instanceof Error ? error.message : 'Generation failed.';
+      setStatus(message);
+    }
   }
 
   async function handleSaveGenerated() {
@@ -304,79 +311,94 @@ export default function CreateImport() {
       <section className="saas-surface p-8">
         <p className="saas-kicker">Content Studio</p>
         <h1 className="saas-title mt-3">Create and Import Flashcards</h1>
-        <p className="saas-subtitle mt-3 max-w-2xl">
-          Structured workflows for manual creation, file imports, and deterministic generation.
-        </p>
       </section>
 
-      <section className="saas-surface p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Deck Management</h2>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Select Subject</label>
-            <select value={subjectId} onChange={event => setSubjectId(event.target.value)} className="saas-input p-3">
-              <option value="">-- Choose a subject --</option>
-              {subjects.map(subject => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-600">Select Deck</label>
-            <select value={deckId} onChange={event => setDeckId(event.target.value)} className="saas-input p-3">
-              <option value="">-- Choose a deck --</option>
-              {decks.map(deck => (
-                <option key={deck.id} value={deck.id}>
-                  {deck.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-          <input
-            type="text"
-            value={newDeckName}
-            onChange={event => setNewDeckName(event.target.value)}
-            placeholder="New deck name"
-            className="saas-input p-3"
-          />
-          <button onClick={() => void handleCreateDeck()} className="saas-btn-primary px-4 py-2 text-sm">
-            Add Deck
-          </button>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
-          <input
-            type="text"
-            value={renameDeckName}
-            onChange={event => setRenameDeckName(event.target.value)}
-            placeholder="Rename selected deck"
-            className="saas-input p-3"
-          />
-          <button onClick={() => void handleRenameDeck()} className="saas-btn-secondary px-4 py-2 text-sm">
-            Rename Deck
-          </button>
-          <button onClick={() => void handleDeleteDeck()} className="saas-btn-danger px-4 py-2 text-sm">
-            Delete Deck
-          </button>
-        </div>
+      <section className="saas-option-grid">
+        <a href="#deck-management" className="saas-option-tile">
+          <p className="saas-kicker">Step 1</p>
+          <h2 className="mt-3 text-xl font-semibold">Deck Setup</h2>
+        </a>
+        <a href="#manual-editor" className="saas-option-tile">
+          <p className="saas-kicker">Step 2</p>
+          <h2 className="mt-3 text-xl font-semibold">Manual Cards</h2>
+        </a>
+        <a href="#imports-transfer" className="saas-option-tile">
+          <p className="saas-kicker">Step 3</p>
+          <h2 className="mt-3 text-xl font-semibold">Import / Export</h2>
+        </a>
+        <a href="#ai-generation" className="saas-option-tile">
+          <p className="saas-kicker">Step 4</p>
+          <h2 className="mt-3 text-xl font-semibold">AI Generation</h2>
+        </a>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="saas-surface p-6">
+      <section id="deck-management" className="grid gap-5 xl:grid-cols-[1.3fr_1fr_1fr]">
+        <article className="saas-surface p-6 space-y-5">
+          <h2 className="text-lg font-semibold text-slate-900">Deck Management</h2>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-600">Select Subject</label>
+              <select value={subjectId} onChange={event => setSubjectId(event.target.value)} className="saas-input p-3">
+                <option value="">-- Choose a subject --</option>
+                {subjects.map(subject => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-600">Select Deck</label>
+              <select value={deckId} onChange={event => setDeckId(event.target.value)} className="saas-input p-3">
+                <option value="">-- Choose a deck --</option>
+                {decks.map(deck => (
+                  <option key={deck.id} value={deck.id}>
+                    {deck.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row">
+            <input
+              type="text"
+              value={newDeckName}
+              onChange={event => setNewDeckName(event.target.value)}
+              placeholder="New deck name"
+              className="saas-input flex-1 p-3"
+            />
+            <button onClick={() => void handleCreateDeck()} className="saas-btn-primary px-6 py-3 text-base">
+              Add Deck
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row">
+            <input
+              type="text"
+              value={renameDeckName}
+              onChange={event => setRenameDeckName(event.target.value)}
+              placeholder="Rename selected deck"
+              className="saas-input flex-1 p-3"
+            />
+            <button onClick={() => void handleRenameDeck()} className="saas-btn-secondary px-6 py-3 text-base">
+              Rename
+            </button>
+            <button onClick={() => void handleDeleteDeck()} className="saas-btn-danger px-6 py-3 text-base">
+              Delete
+            </button>
+          </div>
+        </article>
+
+        <article id="imports-transfer" className="saas-surface p-6">
           <h2 className="text-lg font-semibold text-slate-900">JSON Transfer</h2>
-          <p className="mt-1 text-sm text-slate-500">Export the selected deck or import from a JSON backup.</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={() => void handleDeckExport()} className="saas-btn-primary px-4 py-2 text-sm">
+            <button onClick={() => void handleDeckExport()} className="saas-btn-primary px-6 py-3 text-base">
               Export JSON
             </button>
-            <label className="saas-btn-secondary cursor-pointer px-4 py-2 text-sm">
+            <label className="saas-btn-secondary cursor-pointer px-6 py-3 text-base">
               Import JSON
               <input
                 type="file"
@@ -395,12 +417,11 @@ export default function CreateImport() {
 
         <article className="saas-surface p-6">
           <h2 className="text-lg font-semibold text-slate-900">CSV Transfer</h2>
-          <p className="mt-1 text-sm text-slate-500">Move cards with spreadsheet-compatible CSV format.</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={() => void handleDeckExportCsv()} className="saas-btn-primary px-4 py-2 text-sm">
+            <button onClick={() => void handleDeckExportCsv()} className="saas-btn-primary px-6 py-3 text-base">
               Export CSV
             </button>
-            <label className="saas-btn-secondary cursor-pointer px-4 py-2 text-sm">
+            <label className="saas-btn-secondary cursor-pointer px-6 py-3 text-base">
               Import CSV
               <input
                 type="file"
@@ -434,7 +455,7 @@ export default function CreateImport() {
         </article>
       </section>
 
-      <section className="saas-surface p-6">
+      <section id="manual-editor" className="saas-surface p-6">
         <h2 className="text-lg font-semibold text-slate-900">Manual Card Editor</h2>
         <div className="mt-4 space-y-4">
           <div>
@@ -458,18 +479,18 @@ export default function CreateImport() {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => void pasteFromClipboard()} className="saas-btn-secondary px-4 py-2 text-sm">
+            <button onClick={() => void pasteFromClipboard()} className="saas-btn-secondary px-6 py-3 text-base">
               Paste from clipboard
             </button>
-            <button onClick={() => void handleSave()} className="saas-btn-primary px-4 py-2 text-sm">
+            <button onClick={() => void handleSave()} className="saas-btn-primary px-6 py-3 text-base">
               Save Card
             </button>
           </div>
         </div>
       </section>
 
-      <section className="saas-surface p-6">
-        <h2 className="text-lg font-semibold text-slate-900">Imports and Deterministic Generation</h2>
+      <section id="ai-generation" className="saas-surface p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Imports and Card Generation</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="saas-upload cursor-pointer p-4 text-sm text-slate-600">
             Import PDF
@@ -498,8 +519,15 @@ export default function CreateImport() {
         </div>
 
         <div className="saas-upload mt-4 p-4">
-          <p className="mb-3 text-sm text-slate-600">Generation uses deterministic chunking only.</p>
-          <button onClick={() => void handleGenerate()} className="saas-btn-primary px-4 py-2 text-sm">
+          <label className="mb-3 flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              checked={useCloudAI}
+              onChange={event => setUseCloudAI(event.target.checked)}
+            />
+            Use Groq AI only (no fallback)
+          </label>
+          <button onClick={() => void handleGenerate()} className="saas-btn-primary px-6 py-3 text-base">
             Generate flashcards from text
           </button>
         </div>
@@ -530,7 +558,7 @@ export default function CreateImport() {
               </div>
             ))}
 
-            <button onClick={() => void handleSaveGenerated()} className="saas-btn-primary px-4 py-2 text-sm">
+            <button onClick={() => void handleSaveGenerated()} className="saas-btn-primary px-6 py-3 text-base">
               Save all generated cards
             </button>
           </div>
