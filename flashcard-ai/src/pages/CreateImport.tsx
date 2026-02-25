@@ -32,7 +32,6 @@ export default function CreateImport() {
 
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
-  const [useCloudAI, setUseCloudAI] = useState(false);
   const [status, setStatus] = useState('');
   const [generated, setGenerated] = useState<GeneratedCard[]>([]);
   const [isImportingJson, setIsImportingJson] = useState(false);
@@ -185,9 +184,9 @@ export default function CreateImport() {
 
     setStatus('Generating flashcards...');
     try {
-      const cards = await generateCardsFromText(back, 8, useCloudAI);
+      const cards = await generateCardsFromText(back, 8);
       setGenerated(cards);
-      setStatus(`Generated ${cards.length} cards${useCloudAI ? ' (Groq)' : ' (deterministic)'}.`);
+      setStatus(`Generated ${cards.length} cards (Groq).`);
     } catch (error) {
       setGenerated([]);
       const message = error instanceof Error ? error.message : 'Generation failed.';
@@ -311,25 +310,6 @@ export default function CreateImport() {
       <section className="saas-surface p-8">
         <p className="saas-kicker">Content Studio</p>
         <h1 className="saas-title mt-3">Create and Import Flashcards</h1>
-      </section>
-
-      <section className="saas-option-grid">
-        <a href="#deck-management" className="saas-option-tile">
-          <p className="saas-kicker">Step 1</p>
-          <h2 className="mt-3 text-xl font-semibold">Deck Setup</h2>
-        </a>
-        <a href="#manual-editor" className="saas-option-tile">
-          <p className="saas-kicker">Step 2</p>
-          <h2 className="mt-3 text-xl font-semibold">Manual Cards</h2>
-        </a>
-        <a href="#imports-transfer" className="saas-option-tile">
-          <p className="saas-kicker">Step 3</p>
-          <h2 className="mt-3 text-xl font-semibold">Import / Export</h2>
-        </a>
-        <a href="#ai-generation" className="saas-option-tile">
-          <p className="saas-kicker">Step 4</p>
-          <h2 className="mt-3 text-xl font-semibold">AI Generation</h2>
-        </a>
       </section>
 
       <section id="deck-management" className="grid gap-5 xl:grid-cols-[1.3fr_1fr_1fr]">
@@ -519,14 +499,6 @@ export default function CreateImport() {
         </div>
 
         <div className="saas-upload mt-4 p-4">
-          <label className="mb-3 flex items-center gap-2 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              checked={useCloudAI}
-              onChange={event => setUseCloudAI(event.target.checked)}
-            />
-            Use Groq AI only (no fallback)
-          </label>
           <button onClick={() => void handleGenerate()} className="saas-btn-primary px-6 py-3 text-base">
             Generate flashcards from text
           </button>

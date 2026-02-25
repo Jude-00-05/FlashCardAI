@@ -1,5 +1,3 @@
-import { chunkTextToFlashcards } from './chunker';
-
 export type GeneratedCard = {
   front: string;
   back: string;
@@ -14,24 +12,14 @@ type GrokResponse = {
   cards: GrokCard[];
 };
 
-/**
- * Flashcard generator.
- * Deterministic mode is used only when useCloudAI is false.
- */
 export async function generateCardsFromText(
   rawText: string,
-  maxCards = 20,
-  useCloudAI = false
+  maxCards = 20
 ): Promise<GeneratedCard[]> {
-  if (!useCloudAI) {
-    const cards = chunkTextToFlashcards(rawText);
-    return cards.slice(0, maxCards);
-  }
-
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+  const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api';
 
   try {
-    const response = await fetch(`${apiBaseUrl}/api/ai/generate`, {
+    const response = await fetch(`${apiBaseUrl}/ai/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: rawText, maxCards })
@@ -39,7 +27,7 @@ export async function generateCardsFromText(
 
     if (!response.ok) {
       const detail = await response.text();
-      throw new Error(`Grok request failed (${response.status}): ${detail || 'Unknown error'}`);
+      throw new Error(`Groq request failed (${response.status}): ${detail || 'Unknown error'}`);
     }
 
     const payload = (await response.json()) as GrokResponse;
@@ -53,12 +41,12 @@ export async function generateCardsFromText(
       .slice(0, maxCards);
 
     if (normalized.length === 0) {
-      throw new Error('Grok returned no valid cards in {question, answer} format.');
+      throw new Error('Groq returned no valid cards in {question, answer} format.');
     }
 
     return normalized;
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown Grok error';
+    const message = error instanceof Error ? error.message : 'Unknown Groq error';
     throw new Error(`Cloud AI generation failed: ${message}`);
   }
 }

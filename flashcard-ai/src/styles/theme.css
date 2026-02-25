@@ -75,16 +75,16 @@
 
 .theme-dark {
   color-scheme: dark;
-  --bg-primary: #0f131a;
-  --bg-secondary: #141b25;
-  --surface: #171f2b;
-  --surface-elevated: #1d2734;
-  --text-primary: #e7edf7;
-  --text-muted: #9ba9bc;
+  --bg-primary: #171d28;
+  --bg-secondary: #1d2531;
+  --surface: #212b39;
+  --surface-elevated: #283446;
+  --text-primary: #edf3ff;
+  --text-muted: #b2c0d4;
   --accent: #6f95ff;
   --accent-hover: #88a8ff;
-  --border-subtle: #2c3748;
-  --shadow-color: 6 10 18;
+  --border-subtle: #3a475b;
+  --shadow-color: 10 16 28;
 
   --danger: #f08897;
   --danger-hover: #f6a2af;
@@ -134,9 +134,9 @@ body {
 
 .theme-dark body {
   background:
-    radial-gradient(circle at 14% -8%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 34%),
-    radial-gradient(circle at 86% 0%, rgba(84, 120, 255, 0.13), transparent 42%),
-    linear-gradient(180deg, #0f131a 0%, var(--bg-primary) 36%, var(--bg-secondary) 100%);
+    radial-gradient(circle at 14% -8%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 36%),
+    radial-gradient(circle at 86% 0%, rgba(84, 120, 255, 0.2), transparent 44%),
+    linear-gradient(180deg, #1b2330 0%, var(--bg-primary) 36%, var(--bg-secondary) 100%);
 }
 
 h1,
@@ -433,7 +433,7 @@ a {
 
 .theme-dark .saas-surface {
   background:
-    linear-gradient(180deg, rgba(16, 20, 28, 0.55) 0%, rgba(15, 19, 26, 0.44) 100%);
+    linear-gradient(180deg, rgba(30, 39, 53, 0.62) 0%, rgba(24, 31, 43, 0.52) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     var(--shadow-md);

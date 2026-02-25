@@ -1,12 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
-type NavbarProps = {
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
-};
-
-export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
+export default function Navbar() {
   const { user, logout } = useAuth();
 
   return (
@@ -28,10 +23,6 @@ export default function Navbar({ theme, onToggleTheme }: NavbarProps) {
             <Link to="/create" className="saas-btn-secondary hidden px-3 py-2 text-sm md:inline-flex">
               New Deck
             </Link>
-            <button type="button" onClick={onToggleTheme} className="saas-theme-toggle" aria-label="Toggle theme">
-              <span className="saas-theme-toggle-thumb" />
-              <span className="saas-theme-toggle-text">{theme === 'dark' ? 'Dark' : 'Light'}</span>
-            </button>
             <button type="button" onClick={logout} className="saas-btn-secondary px-3 py-2 text-sm">
               Logout
             </button>
